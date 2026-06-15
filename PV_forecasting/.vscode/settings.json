@@ -1,0 +1,8 @@
+{
+    "python.analysis.extraPaths": [
+        "./pv-forecasting-package/analysis/Previous versions",
+        "./pv-forecasting-package/tests",
+        "./pv-forecasting-package/analysis",
+        "./pv-forecasting-package/tests/abliations"
+    ]
+}
