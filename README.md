@@ -106,6 +106,8 @@ ruff check .
 python -m compileall -q .
 pytest
 ```
+## Acknowledgement
+The authors acknowledge the financial support from the Engineering and Physical Sciences Research Council (EPSRC) through a Turing AI Fellowship on `Citizen-Centric AI Systems' (EP/V022067/1) and the ‘Future Electric Vehicle Energy networks supporting Renewables (FEVER)’ (EP/W005883/1). The authors acknowledge the use of the IRIDIS High Performance Computing Facility, and associated support services at the University of Southampton. The work was also supported by the Low Carbon Comfort Centre at the University of Southampton.
 
 ## Citation
 
