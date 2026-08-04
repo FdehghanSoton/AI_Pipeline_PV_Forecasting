@@ -55,6 +55,16 @@ WEATHER_CHANNELS = [
     "precipitation",
 ]
 
+# Ordered channel contract used by ``build_supervised_tensors``. Keeping this
+# explicit prevents the paper, tests, and implementation from silently
+# disagreeing about the CNN input dimensionality.
+CNN_INPUT_CHANNELS = (
+    "pv_normalised",
+    "is_past",
+    "pv_available",
+    *WEATHER_CHANNELS,
+)
+
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 torch.set_num_threads(4)
 
@@ -166,8 +176,13 @@ def build_supervised_tensors(
     n_days, n_hours = pv_mat.shape
     window = history_days + 1
 
+    missing = np.asarray(is_missing_mat).astype(bool)
     pv_input = np.array(pv_mat, copy=True)
-    pv_available = (np.asarray(is_missing_mat) == 0).astype(np.float32)
+    pv_available = (~missing).astype(np.float32)
+
+    # Zero is only a finite tensor placeholder here. The separate availability
+    # channel distinguishes it from an observed zero-generation measurement.
+    pv_input[missing] = 0.0
     if hidden_pv_days is not None and len(hidden_pv_days):
         hidden = day_index.isin(pd.DatetimeIndex(hidden_pv_days).normalize())
         pv_input[hidden] = 0.0
@@ -175,6 +190,7 @@ def build_supervised_tensors(
 
     pv_norm = np.nan_to_num(pv_input / capacity, nan=0.0).astype(np.float32)
     target_norm = np.nan_to_num(pv_mat / capacity, nan=0.0).astype(np.float32)
+    target_norm[missing] = 0.0
 
     xs: list[np.ndarray] = []
     ys: list[np.ndarray] = []
@@ -206,6 +222,11 @@ def build_supervised_tensors(
             ],
             axis=0,
         ).astype(np.float32)
+        if channels.shape[0] != len(CNN_INPUT_CHANNELS):
+            raise RuntimeError(
+                "CNN channel contract violated: "
+                f"expected {len(CNN_INPUT_CHANNELS)}, got {channels.shape[0]}"
+            )
 
         valid = is_missing_mat[d] == 0
         daylight = is_daylight_mat[d] == 1

@@ -63,6 +63,18 @@ The main run writes:
 - `pv_v4_summary.png`
 - paper-ready figures in PDF and PNG format
 
+## Missing PV measurements
+
+Missing PV readings are marked before their numeric values are replaced. A
+zero used for tensor construction is only a finite placeholder and is not
+treated as observed zero generation. The CNN receives nine ordered input
+channels: normalised historical PV, a past/target-day indicator, a historical
+PV-availability mask, and six weather channels. Missing target hours have zero
+loss weight and are excluded from both all-hours and daylight-only metrics.
+Validation and test days are also masked wherever they would otherwise appear
+inside a CNN history window. Temporal train/validation splits are made on whole
+calendar days.
+
 Additional credibility runs (each is a full backtest, so slower):
 
 ```bash

@@ -1,0 +1,28 @@
+% Camera-ready revisions, addressed sequentially from the reviewer priorities.
+
+% =============================================================================
+% PRIORITY 1.1: MISSING-DATA HANDLING
+% Suggested replacement paragraph for the data/preprocessing or CNN subsection.
+% =============================================================================
+After regular hourly reindexing, 868 PV measurements were absent, corresponding
+to $9.25\%$ of the hourly grid. Missingness was recorded before numerical
+replacement; the zero value used in tensor construction is therefore a finite
+placeholder rather than an observed zero-generation label. The CNN receives a
+separate historical PV-availability channel, enabling it to distinguish these
+placeholders from genuine zero output. Its nine input channels comprise
+normalised historical PV, a past/target-day indicator, the PV-availability
+mask, and six weather variables. For each target day, the PV channel contains
+only the preceding seven days; the target-day PV block is zeroed. Moreover,
+outer-validation and test-day PV values are masked wherever those days would
+otherwise occur in another sample's history window. During optimisation,
+missing target hours receive zero loss weight (valid night-time and daylight
+hours receive weights of one and four, respectively), and all reported metrics
+exclude missing targets. Train--validation partitions are defined on complete
+calendar days so that a day cannot contribute targets to both subsets.
+
+% Suggested concise response to the reviewer.
+% We clarified that zero is used only as a finite placeholder alongside an
+% explicit availability channel. We also documented the nine-channel CNN input,
+% zero loss weight and metric exclusion for missing targets, and masking of
+% held-out PV history. The implementation now enforces day-disjoint temporal
+% train--validation splits, and automated tests cover each of these properties.

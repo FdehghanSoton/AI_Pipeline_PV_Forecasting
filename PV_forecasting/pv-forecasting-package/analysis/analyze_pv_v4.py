@@ -85,6 +85,28 @@ class FoldRes:
     clearness_test: np.ndarray | None = None
 
 
+def _split_temporal_validation_by_day(
+    train_full: pd.DataFrame,
+    fraction: float = 0.15,
+    min_validation_days: int = 7,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return chronologically ordered, calendar-day-disjoint train/validation sets.
+
+    Splitting by rows can divide a partly observed day across both sets. The
+    CNN constructs daily targets and history windows, so the split must be made
+    on calendar days to keep validation targets out of training.
+    """
+    days = pd.DatetimeIndex(train_full.index.normalize().unique()).sort_values()
+    if len(days) < 2:
+        raise ValueError("At least two calendar days are required for validation")
+
+    n_validation_days = max(min_validation_days, int(np.ceil(fraction * len(days))))
+    n_validation_days = min(n_validation_days, len(days) - 1)
+    validation_days = days[-n_validation_days:]
+    is_validation = train_full.index.normalize().isin(validation_days)
+    return train_full.loc[~is_validation], train_full.loc[is_validation]
+
+
 def fit_per_hour_gbm(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -395,8 +417,7 @@ def temporal_backtest(
         train_full = df[(df.index < ts) & (df["is_missing"] == 0)]
         if len(train_full) < 200:
             continue
-        val_size = max(7 * 24, int(0.15 * len(train_full)))
-        train, val = train_full.iloc[:-val_size], train_full.iloc[-val_size:]
+        train, val = _split_temporal_validation_by_day(train_full)
         test = df[(df.index >= ts) & (df.index < te)]
         _log(
             f"T fold {fold + 1}/{n_folds}  origin={ts.date()}  "
