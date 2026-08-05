@@ -26,7 +26,6 @@ os.environ.setdefault("MKL_NUM_THREADS", "4")
 import json
 import time
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -59,10 +58,10 @@ from analyze_pv_v3 import (
 )
 from baselines import add_skill_columns, baseline_predictions
 from config import RunConfig, load_config
+from pipeline_paths import PV_DATA_PATH
 from stats_tests import diebold_mariano, ensemble_gain
 
-CSV_PATH = Path(__file__).with_name("PV_data.csv")
-OUT_DIR = Path(__file__).parent
+CSV_PATH = PV_DATA_PATH
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 torch.set_num_threads(4)
 

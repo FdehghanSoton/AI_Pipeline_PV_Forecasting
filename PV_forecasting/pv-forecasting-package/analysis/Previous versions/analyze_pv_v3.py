@@ -48,10 +48,11 @@ from analyze_pv_v2 import (
     load_pv_v2,
     metric_set,
 )
+from pipeline_paths import OUTPUT_DIR, PV_DATA_PATH, WEATHER_CACHE_PATH
 
-CSV_PATH = Path(__file__).with_name("PV_data.csv")
-WEATHER_CACHE = Path(__file__).with_name("weather_cache.csv")
-OUT_DIR = Path(__file__).parent
+CSV_PATH = PV_DATA_PATH
+WEATHER_CACHE = WEATHER_CACHE_PATH
+OUT_DIR = OUTPUT_DIR
 
 EXTENDED_WEATHER = [
     "shortwave_radiation",

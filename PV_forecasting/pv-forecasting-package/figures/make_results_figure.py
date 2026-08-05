@@ -10,13 +10,13 @@ Run ``python analyze_pv_v4.py`` first, then ``python make_results_figure.py``.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-OUT_DIR = Path(__file__).parent
+from pipeline_paths import OUTPUT_DIR
+
+OUT_DIR = OUTPUT_DIR
 METRICS = OUT_DIR / "pv_v4_metrics.csv"
 PREDICTIONS = OUT_DIR / "pv_v4_predictions.csv"
 

@@ -1,0 +1,24 @@
+# Confidential local inputs
+**/PV_data.csv
+**/weather_cache.csv
+**/weather_cache.meta.json
+**/private_data/
+
+# Reproducible generated artefacts
+**/camera_ready_outputs/
+
+# Private manuscript and reviewer material
+camera_ready/
+**/manuscript/
+**/reviewer_comments/
+**/referee_comments/
+**/response_to_reviewers/
+*.doc
+*.docx
+*.odt
+*.rtf
+
+# Python and test artefacts
+**/__pycache__/
+**/.pytest_cache/
+*.py[cod]

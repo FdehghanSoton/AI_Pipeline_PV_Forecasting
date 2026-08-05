@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pandas as pd
 
 from analyze_pv_v2 import load_pv_v2
-
-ROOT = Path(__file__).parent
+from pipeline_paths import (
+    OUTPUT_DIR,
+    PV_DATA_PATH,
+    WEATHER_CACHE_PATH,
+    WEATHER_META_PATH,
+)
 
 
 def missing_runs(mask: pd.Series) -> pd.DataFrame:
@@ -25,21 +28,24 @@ def missing_runs(mask: pd.Series) -> pd.DataFrame:
                 "hours": int(len(block)),
             }
         )
-    return pd.DataFrame(rows).sort_values("hours", ascending=False)
+    return pd.DataFrame(rows, columns=["start", "end", "hours"]).sort_values(
+        "hours", ascending=False
+    )
 
 
 def main() -> None:
-    raw = pd.read_csv(ROOT / "PV_data.csv", comment="#", skip_blank_lines=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    raw = pd.read_csv(PV_DATA_PATH, comment="#", skip_blank_lines=True)
     raw["_time"] = pd.to_datetime(raw["_time"], utc=True)
     raw["_value"] = pd.to_numeric(raw["_value"], errors="coerce")
     raw = raw[raw["_field"] == "PPV"].sort_values("_time")
 
-    pv = load_pv_v2(ROOT / "PV_data.csv", time_shift_hours=-1)
+    pv = load_pv_v2(PV_DATA_PATH, time_shift_hours=-1)
     day_missing = pv.groupby(pv.index.normalize())["is_missing"].sum()
     runs = missing_runs(pv["is_missing"].astype(bool))
-    runs.to_csv(ROOT / "data_audit_missing_runs.csv", index=False)
+    runs.to_csv(OUTPUT_DIR / "data_audit_missing_runs.csv", index=False)
 
-    weather = pd.read_csv(ROOT / "weather_cache.csv", parse_dates=["time"])
+    weather = pd.read_csv(WEATHER_CACHE_PATH, parse_dates=["time"])
     weather["time"] = pd.to_datetime(weather["time"], utc=True)
 
     summary = {
@@ -53,7 +59,7 @@ def main() -> None:
         "days_with_any_missing_pv": int((day_missing > 0).sum()),
         "fully_missing_days": int((day_missing == 24).sum()),
         "partially_missing_days": int(((day_missing > 0) & (day_missing < 24)).sum()),
-        "longest_missing_run_hours": int(runs.iloc[0]["hours"]),
+        "longest_missing_run_hours": int(runs.iloc[0]["hours"]) if len(runs) else 0,
         "empirical_capacity_q999_kw": float(pv["y"].quantile(0.999)),
         "observed_max_kw": float(raw["_value"].max()),
         "weather_rows": int(len(weather)),
@@ -62,10 +68,10 @@ def main() -> None:
         "weather_columns": [c for c in weather.columns if c != "time"],
         "weather_missing_cells": int(weather.drop(columns="time").isna().sum().sum()),
         "weather_provenance_metadata_present": bool(
-            (ROOT / "weather_cache.meta.json").exists()
+            WEATHER_META_PATH.exists()
         ),
     }
-    (ROOT / "data_audit_summary.json").write_text(
+    (OUTPUT_DIR / "data_audit_summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(summary, indent=2))

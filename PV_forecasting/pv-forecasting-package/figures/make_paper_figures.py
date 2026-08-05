@@ -7,13 +7,13 @@ source code, so figures cannot silently become stale when the model is rerun.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-OUT_DIR = Path(__file__).parent
+from pipeline_paths import OUTPUT_DIR
+
+OUT_DIR = OUTPUT_DIR
 METRICS = OUT_DIR / "pv_v4_metrics.csv"
 PREDICTIONS = OUT_DIR / "pv_v4_predictions.csv"
 CORR_KFOLD = OUT_DIR / "pv_v4_residual_corr_kfold.csv"

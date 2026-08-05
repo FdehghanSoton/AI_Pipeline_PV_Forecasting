@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-OUT_DIR = Path(__file__).parent
+from pipeline_paths import OUTPUT_DIR
 
 # Acceptable absolute tolerances for full-pipeline regression checks. A rerun
 # with identical configuration and seeds should reproduce the committed
@@ -127,12 +127,13 @@ class RunConfig:
 
     def tagged(self, name: str) -> Path:
         """Return an output path, inserting ``run_tag`` before the suffix."""
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         path = Path(name)
         if not self.run_tag:
-            return OUT_DIR / path.name
+            return OUTPUT_DIR / path.name
         stem = path.stem
         suffix = path.suffix
-        return OUT_DIR / f"{stem}__{self.run_tag}{suffix}"
+        return OUTPUT_DIR / f"{stem}__{self.run_tag}{suffix}"
 
     def describe(self) -> dict[str, object]:
         """Machine-readable record of the active configuration for provenance."""

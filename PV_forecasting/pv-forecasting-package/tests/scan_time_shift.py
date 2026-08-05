@@ -19,16 +19,15 @@ import os
 
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 os.environ.setdefault("MKL_NUM_THREADS", "4")
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error, r2_score
 
 from analyze_pv_cnn2d import flag_daylight, load_pv, load_weather
+from pipeline_paths import OUTPUT_DIR, PV_DATA_PATH
 
-CSV_PATH = Path(__file__).with_name("PV_data.csv")
-OUT_PATH = Path(__file__).with_name("pv_time_shift_scan.csv")
+CSV_PATH = PV_DATA_PATH
+OUT_PATH = OUTPUT_DIR / "pv_time_shift_scan.csv"
 SHIFTS = range(-3, 4)
 
 
@@ -70,6 +69,7 @@ def _skill_at_shift(pv: pd.DataFrame, capacity: float, shift: int) -> dict:
 
 
 def main() -> None:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     pv = load_pv(CSV_PATH)
     pv = flag_daylight(pv)
     capacity = float(pv["capacity"].iloc[0])

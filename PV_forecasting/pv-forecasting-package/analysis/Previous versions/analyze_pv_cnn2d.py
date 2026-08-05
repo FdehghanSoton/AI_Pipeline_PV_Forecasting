@@ -42,9 +42,11 @@ import torch.optim as optim
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from torch.utils.data import DataLoader, TensorDataset
 
-CSV_PATH = Path(__file__).with_name("PV_data.csv")
-WEATHER_CACHE = Path(__file__).with_name("weather_cache.csv")
-OUT_DIR = Path(__file__).parent
+from pipeline_paths import OUTPUT_DIR, PV_DATA_PATH, WEATHER_CACHE_PATH
+
+CSV_PATH = PV_DATA_PATH
+WEATHER_CACHE = WEATHER_CACHE_PATH
+OUT_DIR = OUTPUT_DIR
 
 WEATHER_CHANNELS = [
     "shortwave_radiation",

@@ -38,17 +38,42 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-forecasting.txt
 ```
 
-Place your `PV_data.csv` and `weather_cache.csv` in the repository root. Then run the one-command reproduce sequence:
+From `PV_forecasting/pv-forecasting-package`, place these confidential
+data inputs in the Git-ignored `private_data/` directory:
 
-```bash
-python audit_data.py            # data-quality audit + missingness runs
-python analyze_pv_v4.py         # main experiment (both protocols, both subsets)
-python make_paper_figures.py    # model-comparison, residual-corr, representative-week
-python make_results_figure.py   # compact main-text results figure
-python make_appendix_figures.py # appendix figure set (skips absent inputs)
+```text
+private_data/PV_data.csv
+private_data/weather_cache.csv
+private_data/weather_cache.meta.json
 ```
 
-Behaviour is controlled by `config.py` and can be overridden through environment variables; the defaults are the leakage-safe policies. A provenance record of the active configuration is written to `pv_v4_run_config.json` next to the outputs.
+Never commit or upload these source-data files. The repository ignore rules and
+the camera-ready runner both enforce that boundary. Then regenerate every
+result, credibility analysis, table, and figure with one command:
+
+```bash
+python run_camera_ready_pipeline.py
+```
+
+The runner creates a unique Git-ignored `camera_ready_outputs/run-.../`
+directory. It refuses a dirty Git worktree, hashes the three private inputs,
+logs every subprocess, validates every expected output, and writes an atomic
+`run_manifest.json`. The manifest records the Git commit, seeds, data date
+range, weather source, coordinates, assumed tilt/azimuth, daylight threshold,
+reporting capacity, software versions, step timings, and output checksums.
+Private absolute paths are not recorded.
+
+Use `python run_camera_ready_pipeline.py --dry-run` to inspect the plan without
+reading inputs or creating files. An interrupted run can be resumed with the
+same commit, configuration, seeds, inputs, and explicit output directory:
+
+```bash
+python run_camera_ready_pipeline.py --output-dir camera_ready_outputs/run-YYYYMMDDTHHMMSSZ-COMMIT --resume
+```
+
+Behaviour is controlled by `config/config.py` and can be overridden through
+environment variables; the defaults are the leakage-safe policies. The main
+run's active configuration is also saved as `pv_v4_run_config.json`.
 
 The main run writes:
 
@@ -62,6 +87,8 @@ The main run writes:
 - `pv_v4_run_config.json`
 - `pv_v4_summary.png`
 - paper-ready figures in PDF and PNG format
+- `camera_ready_headline_metrics.csv`, `camera_ready_claims.json`, and
+  `camera_ready_results_table.tex` (all headline values derived from saved outputs)
 
 
 Additional credibility runs (each is a full backtest, so slower):

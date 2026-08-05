@@ -18,13 +18,13 @@ then ``python make_appendix_figures.py``.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-OUT_DIR = Path(__file__).parent
+from pipeline_paths import OUTPUT_DIR
+
+OUT_DIR = OUTPUT_DIR
 
 plt.rcParams.update(
     {
@@ -99,9 +99,9 @@ def figure_missingness() -> None:
         ax.axvspan(run["start"], run["end"], color="firebrick", alpha=0.6)
     ax.set_yticks([])
     ax.set_xlabel("UTC date")
+    longest = int(runs["hours"].max()) if len(runs) else 0
     ax.set_title(
-        f"Missing-PV intervals ({len(runs)} runs, "
-        f"longest {int(runs['hours'].max())} h)"
+        f"Missing-PV intervals ({len(runs)} runs, longest {longest} h)"
     )
     fig.tight_layout()
     _save(fig, "pv_v4_fig_app_missingness")
