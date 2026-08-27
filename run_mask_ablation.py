@@ -1,9 +1,5 @@
 """Ablation of how the CNN is told about missing PV observations.
 
-A reviewer noted that filling missing values with zero injects information
-that was never observed, and asked how the missing-value mask is actually
-used. It is used in two independent places, and this script measures each.
-
 ``full``
     Both uses active, which is the configuration the paper reports. A binary
     availability channel tells the network which historical PV values were
