@@ -1,9 +1,4 @@
-"""Single source of truth for the names shown to readers.
-
-Model keys inside the code are terse identifiers such as ``NNLSStack``. Those
-identifiers must never reach a figure, a table or the paper text. This module
-holds the one mapping from key to reader-facing name, so a figure axis and the
-prose that discusses it cannot drift apart.
+"""Single source of truth for the names.
 
 ``LABEL`` is the name used in running text and in figure legends.
 ``SHORT_LABEL`` is the same name shortened for a crowded tick axis, and
