@@ -1,8 +1,5 @@
 """Sensitivity of the results to the clearness-ratio upper bound.
 
-A reviewer asked why the clearness ratio is bounded above at 1.5. The honest
-answer has two parts, and this script supplies the second.
-
 First, the bound on the clearness-index *feature* never binds: the largest
 value observed in the record is 1.0045, so that bound cannot have influenced
 any reported number (see ``audit_clipping.py``).
@@ -11,7 +8,7 @@ Second, the bound on the clearness-index GBM's *target* does bind, on about a
 tenth of daylight hours. Rather than defend 1.5 as a principled constant, which
 it is not, this script sweeps it and reports how much the results move. If the
 results are stable across a wide range of bounds, the specific value is not
-load-bearing, which is a stronger answer than any justification of 1.5 alone.
+load-bearing.
 
 The sweep reports the clearness-index GBM itself, which the bound acts on
 directly, alongside the best ensemble, which is what the paper's headline
