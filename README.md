@@ -3,7 +3,7 @@
 Code and results for the UK AI Conference 2026 paper of the same name.
 
 The pipeline forecasts hourly photovoltaic (PV) output a day ahead for a
-university charging-station site in Southampton, United Kingdom, using about a
+charging-station site in Southampton, United Kingdom, using about a
 year of inverter measurements and public weather data. It corrects a one-hour
 timestamp mismatch between the two records, builds leakage-safe solar-geometry
 and clearness-index features, adds short-term atmospheric context, and fuses
