@@ -1,0 +1,51 @@
+{
+  "context": {
+    "capacity_kw": 1664.2,
+    "denominator_floor_kw": 1.0,
+    "n_daylight_observed": 3869,
+    "pct_daylight_at_denominator_floor": 0.0,
+    "pct_above_bound_explained_by_floor": 0.0,
+    "max_clearness_kt_observed": 1.0045
+  },
+  "bounds": [
+    {
+      "quantity": "clearness_kt",
+      "formula": "GHI / top-of-atmosphere horizontal irradiance",
+      "role": "model feature",
+      "upper_bound": 1.5,
+      "n_daylight_observed": 3869,
+      "n_above_bound": 0,
+      "pct_above_bound": 0.0,
+      "max_raw": 1.0045,
+      "p99_raw": 0.8406,
+      "median_raw": 0.4976,
+      "bound_is_active": false
+    },
+    {
+      "quantity": "kappa",
+      "formula": "measured power / plane-of-array clear-sky power envelope",
+      "role": "clearness-index GBM target",
+      "upper_bound": 1.5,
+      "n_daylight_observed": 3869,
+      "n_above_bound": 398,
+      "pct_above_bound": 10.2869,
+      "max_raw": 21.6802,
+      "p99_raw": 3.9057,
+      "median_raw": 0.7765,
+      "bound_is_active": true
+    },
+    {
+      "quantity": "smart_persistence_ratio",
+      "formula": "measured power / plane-of-array clear-sky power envelope",
+      "role": "smart-persistence reference forecast",
+      "upper_bound": 1.5,
+      "n_daylight_observed": 3869,
+      "n_above_bound": 398,
+      "pct_above_bound": 10.2869,
+      "max_raw": 21.6802,
+      "p99_raw": 3.9057,
+      "median_raw": 0.7765,
+      "bound_is_active": true
+    }
+  ]
+}

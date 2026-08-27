@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+.DS_Store
+
+# Site measurements are not redistributed. See data/README.md.
+data/PV_data.csv
+
+# Forecast files include measured power.
+results/pv_v4_predictions.csv
+results/pv_v4_weather_predictions.csv
+results/*__*predictions.csv
+
+*.log

@@ -1,0 +1,12 @@
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[lint.per-file-ignores]
+"legacy/*.py" = ["E402"]
+"analyze_pv_v4.py" = ["E402"]
+"analyze_pv_cnn2d.py" = ["E402"]
+"analyze_pv_v3.py" = ["E402"]
+"analyze_pv_v2.py" = ["E402"]

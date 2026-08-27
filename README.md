@@ -1,115 +1,162 @@
-# A Physics-Aware AI Pipeline for Decision-Support in Day-Ahead Photovoltaic Forecasting
+# An AI-Based Decision-Support Pipeline for Day-Ahead Photovoltaic Forecasting
 
+Code and results for the UK AI Conference 2026 paper of the same name.
 
-The supplied weather cache should be treated as an **unknown legacy Open-Meteo archive cache**, not automatically as ERA5. Open-Meteo's default historical product is `best_match`, which may combine several models. To run an ERA5-only experiment, regenerate the cache explicitly:
-
-```bash
-PV_WEATHER_MODEL=era5 python analyze_pv_with_weather.py
-```
-
-## Main workflow
+The pipeline forecasts hourly photovoltaic (PV) output a day ahead for a
+university charging-station site in Southampton, United Kingdom, using about a
+year of inverter measurements and public weather data. It corrects a one-hour
+timestamp mismatch between the two records, builds leakage-safe solar-geometry
+and clearness-index features, adds short-term atmospheric context, and fuses
+five structurally different predictors with weights learned on validation rows
+only.
 
 ```text
-         input data
-              |
-              v
-    timestamp alignment and data audit
-              |
-              v
- weather + solar-geometry + temporal features
-              |
-              v
- Ridge | GBM | clearness GBM | per-hour GBM | 2D CNN
-              |
-              v
- Mean | inverse RMSE | ridge stack | NNLS stack
-              |
-              v
- random day-fold and rolling-origin evaluation
+        PV measurements                  Open-Meteo weather
+              |                                  |
+              +----------- timestamp ------------+
+                           alignment
+                              |
+        solar geometry, clearness index, lag / lead / rolling context
+                              |
+    Ridge | GBM | clearness-index GBM | per-hour GBM | 2D CNN
+                              |
+        mean | inverse RMSE | ridge stack | NNLS stack
+                              |
+        random day-fold and rolling-origin evaluation
 ```
 
-## Quick start
+## Layout
 
-Python 3.10 or later is recommended.
+| Path | Contents |
+| --- | --- |
+| `*.py` | the pipeline: shared modules and the entry points listed below |
+| `data/` | weather caches (committed) and the PV measurements (not committed) |
+| `results/` | every table and figure in the paper, as generated |
+| `tests/` | unit and regression tests |
+| `legacy/` | superseded scripts, kept for provenance and not needed to reproduce |
+
+Paths are resolved through `paths.py`, so scripts can be run from any working
+directory and always read from `data/` and write to `results/`.
+
+## Setup
+
+Python 3.10 or later.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-forecasting.txt
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Place your `PV_data.csv` and `weather_cache.csv` in the repository root. Then run the one-command reproduce sequence:
+The PV measurements are not distributed with this repository. Place your own
+`PV_data.csv` in `data/`; `data/README.md` gives the expected format and what
+to check before trusting the default timestamp correction. The weather caches
+are already present, so nothing needs to be downloaded.
+
+## Reproducing the paper
+
+Everything below runs on a laptop CPU. The main experiment takes a few minutes;
+the four credibility runs are each a full backtest and take longer.
 
 ```bash
-python audit_data.py            # data-quality audit + missingness runs
-python analyze_pv_v4.py         # main experiment (both protocols, both subsets)
-python make_paper_figures.py    # model-comparison, residual-corr, representative-week
-python make_results_figure.py   # compact main-text results figure
-python make_appendix_figures.py # appendix figure set (skips absent inputs)
+python audit_data.py             # data-quality audit, missing runs, DST check
+python analyze_pv_v4.py          # main experiment: both protocols, both subsets
+python make_paper_figures.py     # model comparison, residual correlation, week
+python make_results_figure.py    # main-text results figure
+python make_appendix_figures.py  # appendix figures (skips absent inputs)
+python make_weights_figure.py    # stacking weights
+python make_pipeline_diagram.py  # Figure 1
 ```
 
-Behaviour is controlled by `config.py` and can be overridden through environment variables; the defaults are the leakage-safe policies. A provenance record of the active configuration is written to `pv_v4_run_config.json` next to the outputs.
-
-The main run writes:
-
-- `pv_v4_metrics.csv` (includes a clear-sky-persistence skill column)
-- `pv_v4_per_fold_metrics.csv` (per-fold spread)
-- `pv_v4_predictions.csv` (includes `clearness_kt`)
-- `pv_v4_per_month.csv`
-- `pv_v4_residual_corr_kfold.csv`
-- `pv_v4_residual_corr_temporal.csv`
-- `pv_v4_significance.csv` (Diebold-Mariano ensemble vs best base learner)
-- `pv_v4_run_config.json`
-- `pv_v4_summary.png`
-- paper-ready figures in PDF and PNG format
-
-Additional credibility runs (each is a full backtest, so slower):
+The experiments that answer specific questions in the paper:
 
 ```bash
-python run_ablations.py                              # pipeline ablation table
-python run_multiseed.py --seeds 0 1 2 3 4            # multi-seed mean +/- sd
-PV_DROP_MISSING_DAYS=1 PV_RUN_TAG=sens_nomissing python analyze_pv_v4.py  # missing-day sensitivity
-PV_CAPACITY_POLICY=global PV_DAYLIGHT_POLICY=pv_median PV_RUN_TAG=legacy python analyze_pv_v4.py  # legacy policies
+python run_ablations.py --both   # pipeline ablation table (Appendix B), both protocols
+python run_multiseed.py --seeds 0 1 2 3 4   # seed spread on the headline numbers
+python run_weather_experiment.py # analysis vs issued day-ahead forecast, and ERA5
+python audit_clipping.py         # how often the clearness bounds actually bind
+python run_clip_sensitivity.py   # sweep of the clearness-ratio bound
+python run_mask_ablation.py      # what the CNN's missingness handling is worth
+python run_cost_benefit.py       # cost of each base learner and its marginal value
+python run_operational_value.py  # forecast error priced as a commitment cost
+python run_standard_of_reference.py  # which naive forecast the skill score should use
 ```
 
-## File guide
+Each writes CSV files into `results/`, and `analyze_pv_v4.py` also writes
+`pv_v4_run_config.json` recording the exact configuration that produced them.
 
-### Main pipeline
+Once the runs above have completed, `verify_paper_numbers.py` re-derives every
+number quoted in the paper from the files in `results/` and reports any that no
+longer agree, so a change in the pipeline cannot silently invalidate the text:
 
-- `analyze_pv_with_weather.py`: retrieves and records provenance for historical weather.
-- `analyze_pv_v2.py`: PV loading, candidate timestamp shift, solar features, and ensemble utilities.
-- `analyze_pv_v3.py`: full weather panel, temporal-context features, and shared plotting utilities.
-- `analyze_pv_cnn2d.py`: leakage-aware CNN tensor construction and training.
-- `analyze_pv_v4.py`: main random day-fold and rolling-origin experiment.
-- `make_paper_figures.py`: generates figures directly from saved predictions and correlations.
+```bash
+python verify_paper_numbers.py
+```
 
-### Supporting tools
+### Which script produced which table
 
-- `audit_data.py`: records missingness, data range, empirical capacity, and weather-cache status.
-- `test_time_shift.py`: compares candidate timestamp shifts empirically.
-- `analyze_pv_diagnostic.py`: exploratory data-quality diagnostics.
-- `analyze_pv_forecastability.py`: non-ML benchmark and forecastability analysis.
+| Paper element | Script | Output |
+| --- | --- | --- |
+| Main results table | `analyze_pv_v4.py` | `pv_v4_metrics.csv` |
+| Section 5.3, "Results with Issued Day-Ahead Forecasts" | `run_weather_experiment.py` | `pv_v4_weather_summary.csv` |
+| Appendix C, "Pipeline Ablation" | `run_ablations.py --both` | `pv_v4_ablation.csv` |
+| Appendix D, "Choice of Standard of Reference" | `run_standard_of_reference.py` | `pv_v4_standard_of_reference.csv` |
+| Appendix E, "Choice of Weather Product" | `run_weather_experiment.py` | `pv_v4_weather_metrics.csv` |
+| Appendix F, "Sensitivity to the Clearness-Ratio Bound" | `run_clip_sensitivity.py` | `pv_v4_clip_sensitivity.csv` |
+| Appendix G, "Pricing Forecast Error as a Commitment Cost" | `run_operational_value.py` | `pv_v4_operational_value.csv` |
+| Appendix H, "Computational Cost and Value of Each Base Learner" | `run_cost_benefit.py` | `pv_v4_cost_benefit.csv` |
+| Appendix J, "Missing-Data Handling in the Convolutional Network" | `run_mask_ablation.py` | `pv_v4_mask_ablation.csv` |
+| Timestamp-shift scan figure | `scan_time_shift.py` | `pv_time_shift_scan.csv` |
+| Seed spread quoted in the results | `run_multiseed.py` | `pv_v4_multiseed_summary.csv` |
+| Every number in the paper, checked | `verify_paper_numbers.py` | console report |
 
-### Historical scripts
+## Configuration
 
-- `analyze_pv_ensemble.py`: superseded pre-V4 experiment.
-- `analyze_pv_trends.py`: optional exploratory trend analysis with an additional dependency.
+`config.py` holds every switch, and each can be overridden by an environment
+variable so a single command reproduces a specific run. The defaults are the
+leakage-safe policies used for the headline numbers.
 
-These historical scripts are not required to reproduce the paper's V4 results.
+```bash
+PV_TIME_SHIFT=0        PV_RUN_TAG=noshift    python analyze_pv_v4.py
+PV_USE_PHYSICS=0       PV_RUN_TAG=calendar   python analyze_pv_v4.py
+PV_WEATHER_SOURCE=forecast_day1 PV_RUN_TAG=fcst python analyze_pv_v4.py
+PV_KAPPA_CLIP=inf      PV_RUN_TAG=noclip     python analyze_pv_v4.py
+```
 
+Outputs are suffixed with `PV_RUN_TAG`, so tagged runs do not overwrite the
+headline results.
 
-## Development checks
+## Weather provenance
+
+The headline results use the ECMWF IFS operational analysis archive. This is
+retrospective: it describes the target day rather than predicting it, so it is
+not available to a forecaster in advance. `run_weather_experiment.py` measures
+what that retrospective view is worth by rerunning against the day-ahead
+forecast as it was actually issued, and the paper reports both. Each cache in `data/weather/`
+carries a `.meta.json` naming the model, grid point and retrieval time.
+
+## Tests
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check .
-python -m compileall -q .
 pytest
+ruff check .
 ```
-## Acknowledgement
-The authors acknowledge the financial support from the Engineering and Physical Sciences Research Council (EPSRC) through a Turing AI Fellowship on `Citizen-Centric AI Systems' (EP/V022067/1) and the ‘Future Electric Vehicle Energy networks supporting Renewables (FEVER)’ (EP/W005883/1). The authors acknowledge the use of the IRIDIS High Performance Computing Facility, and associated support services at the University of Southampton. The work was also supported by the Low Carbon Comfort Centre at the University of Southampton.
+
+`tests/test_regression.py` checks the headline metrics against committed values
+within the tolerances declared in `config.py`. It needs `data/PV_data.csv` and
+is skipped when the measurements are absent.
 
 ## Citation
 
-Please cite the final paper, the selected weather product, and pvlib. The Open-Meteo historical-weather documentation should also be recorded in the data-provenance statement.
+Please cite the paper, the weather product used (ECMWF IFS via Open-Meteo for
+the headline results), pvlib for the solar-position and clear-sky models, and
+Open-Meteo itself.
 
+## Acknowledgements
+
+The authors acknowledge support from EPSRC through the Turing AI Fellowship
+"Citizen-Centric AI Systems" (EP/V022067/1) and the "Future Electric Vehicle
+Energy networks supporting Renewables (FEVER)" project (EP/W005883/1), the
+IRIDIS High Performance Computing Facility, and the Low Carbon Comfort Centre
+at the University of Southampton.

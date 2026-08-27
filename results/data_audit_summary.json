@@ -1,0 +1,53 @@
+{
+  "pv_raw_rows": 8519,
+  "pv_raw_start": "2025-03-05 22:00:00+00:00",
+  "pv_raw_end": "2026-04-01 00:00:00+00:00",
+  "pv_hourly_grid_rows_after_shift": 9387,
+  "pv_missing_hours": 868,
+  "pv_missing_percentage": 9.246830723340791,
+  "calendar_days_on_grid": 392,
+  "days_with_any_missing_pv": 43,
+  "fully_missing_days": 29,
+  "partially_missing_days": 14,
+  "longest_missing_run_hours": 381,
+  "n_missing_runs": 9,
+  "median_missing_run_hours": 57.0,
+  "pct_missing_hours_in_runs_over_3_days": 91.93548387096774,
+  "daylight_saving": {
+    "spring_forward_hours_in_record": [
+      "2025-03-30 01:00:00+00:00",
+      "2026-03-29 01:00:00+00:00"
+    ],
+    "spring_forward_hours_missing": [
+      "2025-03-30 01:00:00+00:00",
+      "2026-03-29 01:00:00+00:00"
+    ],
+    "n_single_hour_gaps": 3,
+    "n_single_hour_gaps_at_spring_forward": 2,
+    "all_spring_forward_hours_are_missing": true
+  },
+  "empirical_capacity_q999_kw": 1664.2456542551988,
+  "observed_max_kw": 1724.1479694019454,
+  "weather_rows": 9432,
+  "weather_start": "2025-03-05 00:00:00+00:00",
+  "weather_end": "2026-04-01 23:00:00+00:00",
+  "weather_columns": [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "cloud_cover",
+    "cloud_cover_low",
+    "cloud_cover_mid",
+    "cloud_cover_high",
+    "shortwave_radiation",
+    "direct_radiation",
+    "direct_normal_irradiance",
+    "diffuse_radiation",
+    "wind_speed_10m",
+    "wind_gusts_10m",
+    "precipitation",
+    "pressure_msl"
+  ],
+  "weather_missing_cells": 0,
+  "weather_provenance_metadata_present": false
+}

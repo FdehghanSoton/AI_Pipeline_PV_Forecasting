@@ -1,0 +1,4 @@
+quantity,formula,role,upper_bound,n_daylight_observed,n_above_bound,pct_above_bound,max_raw,p99_raw,median_raw,bound_is_active
+clearness_kt,GHI / top-of-atmosphere horizontal irradiance,model feature,1.5,3869,0,0.0,1.0045,0.8406,0.4976,False
+kappa,measured power / plane-of-array clear-sky power envelope,clearness-index GBM target,1.5,3869,398,10.2869,21.6802,3.9057,0.7765,True
+smart_persistence_ratio,measured power / plane-of-array clear-sky power envelope,smart-persistence reference forecast,1.5,3869,398,10.2869,21.6802,3.9057,0.7765,True

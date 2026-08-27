@@ -1,0 +1,29 @@
+{
+  "time_shift_hours": -1,
+  "capacity_policy": "fold_train",
+  "metric_capacity_policy": "global",
+  "daylight_policy": "geometric",
+  "daylight_elevation_deg": 5.0,
+  "daylight_pct": 0.05,
+  "use_physics_features": true,
+  "use_temporal_context": true,
+  "drop_missing_days": false,
+  "include_baselines": true,
+  "cnn_seeds": [
+    0
+  ],
+  "weather_source": "ifs",
+  "weather_variable_set": "forecast_matched",
+  "kfold_n_folds": 5,
+  "temporal_n_folds": 4,
+  "first_test_days": 120,
+  "seed": 0,
+  "run_tag": "weather_analysis_matched",
+  "site": {
+    "lat": 50.91,
+    "lon": -1.4,
+    "alt": 30.0,
+    "tilt": 30.0,
+    "azimuth": 180.0
+  }
+}

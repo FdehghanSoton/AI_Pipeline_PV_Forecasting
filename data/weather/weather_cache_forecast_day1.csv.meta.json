@@ -1,0 +1,36 @@
+{
+  "source": "forecast_day1",
+  "description": "Day-ahead forecast as issued, from the Open-Meteo previous-model-runs archive (_previous_day1)",
+  "open_meteo_url": "https://previous-runs-api.open-meteo.com/v1/forecast",
+  "open_meteo_model": "previous_runs_day1",
+  "variable_suffix": "_previous_day1",
+  "requested_latitude": 50.9097,
+  "requested_longitude": -1.4044,
+  "grid_latitude": 50.901123,
+  "grid_longitude": -1.4168854,
+  "grid_elevation_m": 23.0,
+  "start_date": "2025-03-05",
+  "end_date": "2026-03-31",
+  "variables": [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "cloud_cover",
+    "shortwave_radiation",
+    "direct_radiation",
+    "direct_normal_irradiance",
+    "diffuse_radiation",
+    "wind_speed_10m",
+    "wind_gusts_10m",
+    "precipitation",
+    "pressure_msl"
+  ],
+  "unavailable_variables": [
+    "cloud_cover_low",
+    "cloud_cover_mid",
+    "cloud_cover_high"
+  ],
+  "retrieved_utc": "2026-08-27T07:43:29Z",
+  "n_rows": 9408,
+  "n_missing_values": 0
+}
