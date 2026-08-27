@@ -29,7 +29,7 @@ period cannot be re-fetched indefinitely. It is committed for that reason.
 
 ## `PV_data.csv` — not committed
 
-Hourly AC power from the university charging-station array. These are site
+Hourly AC power from the charging-station array. These are site
 measurements that we are not able to redistribute, so the file is excluded by
 `.gitignore` and the pipeline raises a clear error if it is missing. Enquiries
 about access should go to the corresponding author.
