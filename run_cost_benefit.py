@@ -1,11 +1,5 @@
 """Measure what each base learner costs and what it is worth.
 
-A reviewer asked whether the ensemble's accuracy justifies its computation,
-noting that an operator has to run every base learner to obtain one forecast.
-Answering that needs two numbers per learner that the pipeline does not
-otherwise record: the wall-clock time to fit it and to predict with it, and
-the accuracy given up by dropping it from the ensemble.
-
 Timing is measured on a single fold rather than averaged over the backtest,
 because the point is the relative cost of the learners and a single fold
 already separates them by more than an order of magnitude. Fitting is timed
