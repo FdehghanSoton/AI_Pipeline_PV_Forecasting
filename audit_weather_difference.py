@@ -1,10 +1,5 @@
 """Quantify how far the issued day-ahead forecast is from the analysis.
 
-The paper claims the day-ahead forecast is a genuinely different input rather
-than a relabelled copy of the analysis. That claim needs a number, and the
-number needs to come from a script rather than a one-off calculation, so it can
-be checked and rerun.
-
 Differences are reported on the daylight subset defined exactly as everywhere
 else in the paper, by solar elevation above five degrees, because that is the
 subset the headline metrics use and irradiance errors at night are not
