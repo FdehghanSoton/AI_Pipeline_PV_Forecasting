@@ -1,9 +1,5 @@
 """Translate forecast error into a day-ahead commitment cost.
 
-The paper calls its pipeline decision support but scores it with RMSE, and a
-reviewer is entitled to ask what a change in RMSE buys an operator. This
-script closes part of that gap without inventing a full scheduling model.
-
 The proxy is day-ahead commitment under imbalance settlement, which is how a
 site of this kind would actually monetise a forecast. The operator commits the
 forecast for each hour of the target day. Where generation falls short of the
