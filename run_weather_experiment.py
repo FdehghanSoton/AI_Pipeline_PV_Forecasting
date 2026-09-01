@@ -145,26 +145,32 @@ def run_configuration(
 
 
 def best_per_mode(metrics: pd.DataFrame) -> pd.DataFrame:
-    """Best ensemble and best base learner on the daylight subset, per protocol."""
+    """Pre-declared stack and best base learner on daylight rows, per protocol.
+
+    Every configuration is summarised by ``NNLSStack``. Following one method
+    across weather products keeps the comparison, and the paired test built on
+    it below, from mixing a change of weather input with a change of fusion
+    method.
+    """
     rows = []
     daylight = metrics[metrics["subset"] == "daylight"]
     for (configuration, mode), group in daylight.groupby(["configuration", "mode"]):
-        ensembles = group[group["model"].isin(pipeline.ENSEMBLE_NAMES)]
+        stacks = group[group["model"] == "NNLSStack"]
         bases = group[group["model"].isin(pipeline.BASE_LEARNERS)]
         reference = group[group["model"] == "SmartPersistence"]
-        if ensembles.empty or bases.empty:
+        if stacks.empty or bases.empty:
             continue
-        best_ensemble = ensembles.sort_values("RMSE").iloc[0]
+        stack = stacks.iloc[0]
         best_base = bases.sort_values("RMSE").iloc[0]
         rows.append(
             {
                 "configuration": configuration,
                 "mode": mode,
-                "n": int(best_ensemble["n"]),
-                "best_ensemble": best_ensemble["model"],
-                "ensemble_R2": float(best_ensemble["R2"]),
-                "ensemble_RMSE": float(best_ensemble["RMSE"]),
-                "ensemble_nRMSE_pct": float(best_ensemble["nRMSE_pct"]),
+                "n": int(stack["n"]),
+                "best_ensemble": "NNLSStack",
+                "ensemble_R2": float(stack["R2"]),
+                "ensemble_RMSE": float(stack["RMSE"]),
+                "ensemble_nRMSE_pct": float(stack["nRMSE_pct"]),
                 "best_base": best_base["model"],
                 "base_R2": float(best_base["R2"]),
                 "base_nRMSE_pct": float(best_base["nRMSE_pct"]),
@@ -174,8 +180,8 @@ def best_per_mode(metrics: pd.DataFrame) -> pd.DataFrame:
                     else float("nan")
                 ),
                 "skill_vs_smart_persistence": (
-                    float(best_ensemble["skill_vs_SmartPersistence"])
-                    if "skill_vs_SmartPersistence" in best_ensemble
+                    float(stack["skill_vs_SmartPersistence"])
+                    if "skill_vs_SmartPersistence" in stack
                     else float("nan")
                 ),
             }

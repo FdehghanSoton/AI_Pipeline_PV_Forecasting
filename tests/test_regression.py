@@ -2,10 +2,10 @@
 
 Two layers:
 
-1. An always-on check that the committed reference metrics
-   (``pv_v4_metrics.csv``) still contain the documented headline values within
-   the configured tolerance. This catches accidental corruption of the
-   committed results.
+1. An always-on check that the generated metrics
+   (``results/pv_v4_metrics.csv``) still contain the headline values reported in
+   the paper, within the configured tolerance. This catches a pipeline change
+   that silently moves the numbers the text quotes.
 2. An opt-in check (set ``PV_RUN_REGRESSION=1``) that reruns the pipeline with
    the legacy policies and compares the regenerated headline metrics against the
    committed reference within the same tolerance. This is skipped by default
@@ -20,13 +20,24 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+import paths
 from config import REGRESSION_ABS_TOL_NRMSE_PCT, REGRESSION_ABS_TOL_R2
 
 ROOT = Path(__file__).resolve().parents[1]
-METRICS = ROOT / "pv_v4_metrics.csv"
+METRICS = paths.RESULTS_DIR / "pv_v4_metrics.csv"
 
-# Documented committed headline values (CHANGELOG.md baseline block).
+# Headline values reported in the paper, for NNLS stacking, the combination
+# declared in advance.
 EXPECTED = {
+    ("KFOLD", "NNLSStack", "daylight"): {"R2": 0.765, "nRMSE_pct": 12.42},
+    ("KFOLD", "NNLSStack", "ALL"): {"R2": 0.859, "nRMSE_pct": 8.41},
+    ("TEMPORAL", "NNLSStack", "daylight"): {"R2": 0.532, "nRMSE_pct": 17.59},
+    ("TEMPORAL", "NNLSStack", "ALL"): {"R2": 0.719, "nRMSE_pct": 11.37},
+}
+
+# The opt-in rerun below restores the legacy policies, which produce a
+# different, separately documented set of numbers.
+LEGACY_EXPECTED = {
     ("KFOLD", "NNLSStack", "daylight"): {"R2": 0.736, "nRMSE_pct": 13.14},
     ("KFOLD", "NNLSStack", "ALL"): {"R2": 0.858, "nRMSE_pct": 8.42},
     ("TEMPORAL", "RidgeStack", "daylight"): {"R2": 0.570, "nRMSE_pct": 16.88},
@@ -78,7 +89,7 @@ def test_full_pipeline_reproduces_reference(monkeypatch, tmp_path) -> None:
          v4.aggregate(k_folds, capacity, "KFOLD")],
         ignore_index=True,
     )
-    for (mode, model, subset), want in EXPECTED.items():
+    for (mode, model, subset), want in LEGACY_EXPECTED.items():
         row = _lookup(metrics, mode, model, subset)
         assert abs(row["R2"] - want["R2"]) <= REGRESSION_ABS_TOL_R2
         assert abs(row["nRMSE_pct"] - want["nRMSE_pct"]) <= REGRESSION_ABS_TOL_NRMSE_PCT

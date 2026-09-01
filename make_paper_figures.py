@@ -117,7 +117,7 @@ def figure_residual_corr() -> None:
         ("Random day-fold", pd.read_csv(CORR_KFOLD, index_col=0)),
         ("Rolling-origin", pd.read_csv(CORR_TEMPORAL, index_col=0)),
     ]
-    labels = ["Ridge", "GBM", "Clearness\nGBM", "Per-hour\nGBM", "CNN"]
+    labels = ["Ridge", "GBM", "POA-norm.\nGBM", "Per-hour\nGBM", "CNN"]
 
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 3.05), layout="constrained")
     image = None

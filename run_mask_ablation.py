@@ -123,9 +123,11 @@ def summarise(metrics: pd.DataFrame) -> pd.DataFrame:
                 "cnn_R2": float(indexed.loc["CNN", "R2"]),
                 "cnn_RMSE": float(indexed.loc["CNN", "RMSE"]),
                 "cnn_nRMSE_pct": float(indexed.loc["CNN", "nRMSE_pct"]),
-                "best_ensemble": best["model"],
-                "ensemble_R2": float(best["R2"]),
-                "ensemble_nRMSE_pct": float(best["nRMSE_pct"]),
+                "ensemble": "NNLSStack",
+                "ensemble_R2": float(indexed.loc["NNLSStack", "R2"]),
+                "ensemble_nRMSE_pct": float(indexed.loc["NNLSStack", "nRMSE_pct"]),
+                "lowest_error_ensemble": best["model"],
+                "lowest_error_nRMSE_pct": float(best["nRMSE_pct"]),
             }
         )
     return pd.DataFrame(rows)
@@ -220,7 +222,6 @@ def main() -> None:
                     "cnn_R2",
                     "cnn_nRMSE_pct",
                     "cnn_nRMSE_change_pp",
-                    "best_ensemble",
                     "ensemble_nRMSE_pct",
                 ]
             ].to_string(index=False, float_format=lambda v: f"{v:.3f}")

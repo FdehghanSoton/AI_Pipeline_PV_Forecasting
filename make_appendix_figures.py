@@ -163,8 +163,12 @@ def figure_skill_baselines() -> None:
     day = df[df["subset"] == "daylight"]
     order = BASELINES + BASE_LEARNERS + ENSEMBLES
     present = [m for m in order if m in set(day["model"])]
-    fig, axes = plt.subplots(1, day["mode"].nunique(), figsize=(6.5, 3.6), squeeze=False)
-    for ax, (mode, group) in zip(axes[0], day.groupby("mode"), strict=False):
+    fig, axes = plt.subplots(
+        1, day["mode"].nunique(), figsize=(6.5, 3.6), sharey=True, squeeze=False
+    )
+    for column, (ax, (mode, group)) in enumerate(
+        zip(axes[0], day.groupby("mode"), strict=False)
+    ):
         values = group.set_index("model")["nRMSE_pct"].reindex(present)
         colours = [
             "0.6" if m in BASELINES else ("steelblue" if m in BASE_LEARNERS else "seagreen")
@@ -173,8 +177,9 @@ def figure_skill_baselines() -> None:
         model_labels.check_covered(present)
         ax.barh(range(len(present)), values.to_numpy(), color=colours)
         ax.set_yticks(range(len(present)))
-        ax.set_yticklabels([model_labels.short_label(m) for m in present])
-        ax.invert_yaxis()
+        if column == 0:
+            ax.set_yticklabels([model_labels.short_label(m) for m in present])
+            ax.invert_yaxis()
         ax.set_xlabel("Daylight nRMSE (% of capacity)")
         ax.set_title(MODE_LABEL.get(mode, mode))
         ax.grid(axis="x", alpha=0.25)

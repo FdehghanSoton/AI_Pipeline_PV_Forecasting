@@ -14,7 +14,7 @@ so any number in the paper can be traced to a specific product.
 | --- | --- | --- |
 | `weather_cache_ifs.csv` | ECMWF IFS operational analysis (~9 km) | headline results |
 | `weather_cache_era5.csv` | ERA5 reanalysis (31 km, 0.25° grid) | sensitivity check |
-| `weather_cache_forecast_day1.csv` | day-ahead forecast as issued | deployment estimate |
+| `weather_cache_forecast_day1.csv` | forecast values at a constant 24-hour lead, not a single issuance | forecast-input sensitivity |
 | `weather_cache.csv` | the original unpinned cache | kept for continuity |
 
 Regenerate any of them with:

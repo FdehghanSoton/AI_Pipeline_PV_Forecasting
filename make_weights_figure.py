@@ -1,6 +1,9 @@
 """NNLS stacking weights per base learner, mean +/- sd across folds.
 
-Reruns both backtests and wraps ``build_ensembles``.
+Reruns both backtests and wraps ``build_ensembles``. The fitted coefficients
+are divided by their sum here so that the bars can be read as shares of the
+combined forecast. That normalisation is for display only; the forecasts
+themselves use the fitted coefficients unchanged.
 """
 
 from __future__ import annotations
@@ -84,7 +87,7 @@ def main() -> None:
         ax.grid(axis="y", alpha=0.25)
         for x, v in zip(xpos, mean, strict=False):
             ax.text(x, v + 0.01, f"{v:.2f}", ha="center", va="bottom", fontsize=7.5)
-    axes[0].set_ylabel("Mean NNLS stacking weight")
+    axes[0].set_ylabel("Mean NNLS weight share")
     axes[0].set_ylim(0, max(0.6, axes[0].get_ylim()[1]))
     fig.tight_layout()
     for ext in ("pdf", "png"):

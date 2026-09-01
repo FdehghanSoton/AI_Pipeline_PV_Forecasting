@@ -4,11 +4,11 @@ Code and results for the UK AI Conference 2026 paper of the same name.
 
 The pipeline forecasts hourly photovoltaic (PV) output a day ahead for a
 charging-station site in Southampton, United Kingdom, using about a
-year of inverter measurements and public weather data. It corrects a one-hour
-timestamp mismatch between the two records, builds leakage-safe solar-geometry
-and clearness-index features, adds short-term atmospheric context, and fuses
-five structurally different predictors with weights learned on validation rows
-only.
+year of inverter measurements and public weather data. It applies a one-hour
+timestamp correction to an apparent offset between the two records, builds
+leakage-safe solar-geometry and clearness-index features, adds short-term
+atmospheric context, and fuses five structurally different predictors with
+weights learned on validation rows only.
 
 ```text
         PV measurements                  Open-Meteo weather
@@ -18,7 +18,7 @@ only.
                               |
         solar geometry, clearness index, lag / lead / rolling context
                               |
-    Ridge | GBM | clearness-index GBM | per-hour GBM | 2D CNN
+    Ridge | GBM | POA-normalised GBM | per-hour GBM | 2D CNN
                               |
         mean | inverse RMSE | ridge stack | NNLS stack
                               |
@@ -73,13 +73,23 @@ The experiments that answer specific questions in the paper:
 ```bash
 python run_ablations.py --both   # pipeline ablation table (Appendix B), both protocols
 python run_multiseed.py --seeds 0 1 2 3 4   # seed spread on the headline numbers
-python run_weather_experiment.py # analysis vs issued day-ahead forecast, and ERA5
+python run_weather_experiment.py # analysis vs a 24-hour-lead forecast product, and ERA5
 python audit_clipping.py         # how often the clearness bounds actually bind
 python run_clip_sensitivity.py   # sweep of the clearness-ratio bound
 python run_mask_ablation.py      # what the CNN's missingness handling is worth
 python run_cost_benefit.py       # cost of each base learner and its marginal value
 python run_operational_value.py  # forecast error priced as a commitment cost
 python run_standard_of_reference.py  # which naive forecast the skill score should use
+```
+
+The checks that answer "could this choice have been made without held-out
+data?", which are cheap apart from the last:
+
+```bash
+python audit_baseline_gaps.py    # how often the reference forecasts fall back
+python scan_shift_by_fold.py     # timestamp shift re-selected inside each fold
+python check_stack_constraint.py # what forcing the stack weights to sum to one costs
+python run_shift_sensitivity.py  # the pipeline run at each candidate timestamp shift
 ```
 
 Each writes CSV files into `results/`, and `analyze_pv_v4.py` also writes
@@ -98,14 +108,16 @@ python verify_paper_numbers.py
 | Paper element | Script | Output |
 | --- | --- | --- |
 | Main results table | `analyze_pv_v4.py` | `pv_v4_metrics.csv` |
-| Section 5.3, "Results with Issued Day-Ahead Forecasts" | `run_weather_experiment.py` | `pv_v4_weather_summary.csv` |
-| Appendix C, "Pipeline Ablation" | `run_ablations.py --both` | `pv_v4_ablation.csv` |
-| Appendix D, "Choice of Standard of Reference" | `run_standard_of_reference.py` | `pv_v4_standard_of_reference.csv` |
-| Appendix E, "Choice of Weather Product" | `run_weather_experiment.py` | `pv_v4_weather_metrics.csv` |
-| Appendix F, "Sensitivity to the Clearness-Ratio Bound" | `run_clip_sensitivity.py` | `pv_v4_clip_sensitivity.csv` |
-| Appendix G, "Pricing Forecast Error as a Commitment Cost" | `run_operational_value.py` | `pv_v4_operational_value.csv` |
-| Appendix H, "Computational Cost and Value of Each Base Learner" | `run_cost_benefit.py` | `pv_v4_cost_benefit.csv` |
-| Appendix J, "Missing-Data Handling in the Convolutional Network" | `run_mask_ablation.py` | `pv_v4_mask_ablation.csv` |
+| Baseline fallback rates quoted in Section 5.2 | `audit_baseline_gaps.py` | `pv_v4_baseline_gaps.csv` |
+| Choice of reference forecast, quoted in Section 5.2 | `run_standard_of_reference.py` | `pv_v4_standard_of_reference.csv` |
+| Stacking-weight constraint check in Appendix A | `check_stack_constraint.py` | `pv_v4_stack_constraint.csv` |
+| Appendix B, "Pipeline Ablation" | `run_ablations.py --both` and `run_shift_sensitivity.py` | `pv_v4_ablation.csv`, `pv_v4_shift_sensitivity.csv` |
+| Appendix B, per-fold timestamp selection | `scan_shift_by_fold.py` | `pv_shift_by_fold.csv` |
+| Appendix C, "Choice of Weather Product" | `run_weather_experiment.py` | `pv_v4_weather_metrics.csv` |
+| Appendix D, "Sensitivity to the POA-Normalised Target Bound" | `run_clip_sensitivity.py` | `pv_v4_clip_sensitivity.csv` |
+| Appendix E, "Pricing Forecast Error as a Commitment Cost" | `run_operational_value.py` | `pv_v4_operational_value.csv` |
+| Appendix F, "Computational Cost and Value of Each Base Learner" | `run_cost_benefit.py` | `pv_v4_cost_benefit.csv` |
+| Appendix G, "Missing Data Handling in the Convolutional Network" | `run_mask_ablation.py` | `pv_v4_mask_ablation.csv` |
 | Timestamp-shift scan figure | `scan_time_shift.py` | `pv_time_shift_scan.csv` |
 | Seed spread quoted in the results | `run_multiseed.py` | `pv_v4_multiseed_summary.csv` |
 | Every number in the paper, checked | `verify_paper_numbers.py` | console report |
@@ -130,10 +142,14 @@ headline results.
 
 The headline results use the ECMWF IFS operational analysis archive. This is
 retrospective: it describes the target day rather than predicting it, so it is
-not available to a forecaster in advance. `run_weather_experiment.py` measures
-what that retrospective view is worth by rerunning against the day-ahead
-forecast as it was actually issued, and the paper reports both. Each cache in `data/weather/`
-carries a `.meta.json` naming the model, grid point and retrieval time.
+not available to a forecaster in advance. `run_weather_experiment.py` prices
+that retrospective view by rerunning against the Open-Meteo previous-runs
+product, which gives each hour as it was predicted 24 hours earlier. That is a
+constant forecast lead assembled from successive model updates, not a single
+forecast issuance, and the request is not pinned to the IFS, so the difference
+mixes forecast lead with a change of weather product. Each cache in
+`data/weather/` carries a `.meta.json` naming the model, grid point and
+retrieval time.
 
 ## Tests
 

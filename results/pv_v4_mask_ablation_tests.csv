@@ -1,7 +1,7 @@
 arm,mode,dm_statistic,p_value,n,better,loss
-full,KFOLD,-3.3048546200926836,0.0009589140942132535,3869,full,squared
-no_channel,KFOLD,-2.440603723712419,0.014707307783331739,3869,no_channel,squared
-no_loss_weighting,KFOLD,-0.0847284024540317,0.9324817001253956,3869,no significant difference,squared
-full,TEMPORAL,-3.163538584317764,0.0015772284414611035,2517,full,squared
-no_channel,TEMPORAL,-3.0145749117001963,0.002599099423908069,2517,no_channel,squared
-no_loss_weighting,TEMPORAL,1.5376744405541385,0.12425397921908043,2517,no significant difference,squared
+full,KFOLD,-1.6226410917267409,0.10474764453967912,3869,no significant difference,squared
+no_channel,KFOLD,0.7986990429530417,0.4245139787971438,3869,no significant difference,squared
+no_loss_weighting,KFOLD,1.2747570124367609,0.20247182992170393,3869,no significant difference,squared
+full,TEMPORAL,-0.43593671959510727,0.6629200418824348,2517,no significant difference,squared
+no_channel,TEMPORAL,0.10657261024506157,0.9151365450013572,2517,no significant difference,squared
+no_loss_weighting,TEMPORAL,-1.1079556240909056,0.2679868855750807,2517,no significant difference,squared

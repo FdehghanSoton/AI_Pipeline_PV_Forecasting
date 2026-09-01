@@ -76,7 +76,12 @@ def run_bound(bound: float, base: RunConfig) -> pd.DataFrame:
 
 
 def summarise(metrics: pd.DataFrame) -> pd.DataFrame:
-    """Clearness-index GBM and best ensemble, per bound and protocol."""
+    """POA-normalised GBM and the pre-declared stack, per bound and protocol.
+
+    The ensemble column follows ``NNLSStack`` at every bound rather than
+    whichever fusion method scored best at that bound, so the sweep compares
+    one method across bounds instead of a changing set of methods.
+    """
     rows = []
     daylight = metrics[metrics["subset"] == "daylight"]
     for (bound, mode), group in daylight.groupby(["kappa_clip", "mode"]):
@@ -89,9 +94,11 @@ def summarise(metrics: pd.DataFrame) -> pd.DataFrame:
                 "mode": mode,
                 "clearness_gbm_R2": float(indexed.loc["GBM_kt", "R2"]),
                 "clearness_gbm_nRMSE_pct": float(indexed.loc["GBM_kt", "nRMSE_pct"]),
-                "best_ensemble": best["model"],
-                "ensemble_R2": float(best["R2"]),
-                "ensemble_nRMSE_pct": float(best["nRMSE_pct"]),
+                "ensemble": "NNLSStack",
+                "ensemble_R2": float(indexed.loc["NNLSStack", "R2"]),
+                "ensemble_nRMSE_pct": float(indexed.loc["NNLSStack", "nRMSE_pct"]),
+                "lowest_error_ensemble": best["model"],
+                "lowest_error_nRMSE_pct": float(best["nRMSE_pct"]),
             }
         )
     return pd.DataFrame(rows).sort_values(["mode", "kappa_clip"])
@@ -133,7 +140,6 @@ def main() -> None:
                     "kappa_clip",
                     "clearness_gbm_R2",
                     "clearness_gbm_nRMSE_pct",
-                    "best_ensemble",
                     "ensemble_R2",
                     "ensemble_nRMSE_pct",
                     "ensemble_nRMSE_change_pp",

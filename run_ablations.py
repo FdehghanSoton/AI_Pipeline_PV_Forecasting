@@ -56,24 +56,33 @@ def ablation_configs(base: RunConfig) -> dict[str, RunConfig]:
 
 
 def _best_rows(metrics: pd.DataFrame, mode: str, label: str) -> list[dict]:
-    """Extract best-ensemble and best-base daylight/all rows for one ablation."""
+    """Rows for one ablation: the pre-declared stack and the best base learner.
+
+    The ensemble reported is always ``NNLSStack``, the combination declared as
+    the default in the paper, so no ablation is summarised by whichever fusion
+    method happened to score best on that ablation's test folds. The
+    lowest-error ensemble is recorded alongside it for reference only.
+    """
     rows = []
     for subset in ("ALL", "daylight"):
         met = metrics[(metrics["mode"] == mode) & (metrics["subset"] == subset)]
         ens = met[met["model"].isin(ENSEMBLE_NAMES)].sort_values("nRMSE_pct")
+        stack = met[met["model"] == "NNLSStack"]
         base = met[met["model"].isin(BASE_LEARNERS)].sort_values("nRMSE_pct")
-        if ens.empty or base.empty:
+        if ens.empty or base.empty or stack.empty:
             continue
-        best_ens = ens.iloc[0]
+        stack_row = stack.iloc[0]
         best_base = base.iloc[0]
         rows.append(
             {
                 "ablation": label,
                 "mode": mode,
                 "subset": subset,
-                "best_ensemble": best_ens["model"],
-                "ensemble_R2": float(best_ens["R2"]),
-                "ensemble_nRMSE_pct": float(best_ens["nRMSE_pct"]),
+                "ensemble": "NNLSStack",
+                "ensemble_R2": float(stack_row["R2"]),
+                "ensemble_nRMSE_pct": float(stack_row["nRMSE_pct"]),
+                "lowest_error_ensemble": ens.iloc[0]["model"],
+                "lowest_error_nRMSE_pct": float(ens.iloc[0]["nRMSE_pct"]),
                 "best_base": best_base["model"],
                 "base_R2": float(best_base["R2"]),
                 "base_nRMSE_pct": float(best_base["nRMSE_pct"]),

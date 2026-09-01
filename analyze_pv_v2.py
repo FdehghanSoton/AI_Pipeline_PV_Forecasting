@@ -363,12 +363,13 @@ def rolling_backtest(
 def build_ensembles(val_preds, y_val, val_mask, test_preds):
     """Fit fusion weights on held-out validation rows and apply them to test.
 
-    The ``NNLSStack`` member solves an unconstrained non-negative least-squares
-    problem on the validation predictions and then renormalises the resulting
-    weights to sum to one. The renormalisation step means the reported weights
-    form a convex combination, but they are not the exact solution of a
-    least-squares problem with a sum-to-one equality constraint imposed during
-    optimisation. The paper text is worded to reflect this precisely.
+    The ``NNLSStack`` member solves the non-negative least-squares problem on
+    the validation predictions and forecasts with those coefficients unchanged,
+    so the combination it applies is the minimiser of the objective it states.
+    The coefficients are not rescaled to sum to one: dividing them by their sum
+    would move the forecast away from that minimiser. Their sum is close to one
+    in practice, and ``make_weights_figure.py`` normalises them for display only
+    so that the bars can be read as shares.
     """
     names = list(val_preds.keys())
     V = np.stack([val_preds[n] for n in names], axis=1)
@@ -390,11 +391,9 @@ def build_ensembles(val_preds, y_val, val_mask, test_preds):
         out["RidgeStack"] = out["Mean"]
     try:
         w, _ = nnls(V_m, y_m)
-        if w.sum() > 1e-6:
-            w = w / w.sum()
-        else:
+        if w.sum() <= 1e-6:
             w = np.ones(len(names)) / len(names)
-        out["NNLSStack"] = T @ w
+        out["NNLSStack"] = np.clip(T @ w, 0, None)
     except Exception:
         out["NNLSStack"] = out["Mean"]
     best = min(names, key=lambda n: rmses[n])

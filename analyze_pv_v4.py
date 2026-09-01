@@ -682,11 +682,14 @@ def aggregate_per_fold(folds: list[FoldRes], capacity: float, mode: str) -> pd.D
 def significance_table(
     predictions: pd.DataFrame, metrics: pd.DataFrame
 ) -> pd.DataFrame:
-    """Diebold-Mariano test of the best ensemble vs the best base learner.
+    """Diebold-Mariano test of the pre-declared stack vs the best base learner.
 
-    For each (mode, subset) the lowest-RMSE ensemble and the lowest-RMSE base
-    learner are selected from the pooled metrics, and their daylight/all-hours
-    residuals are compared on the pooled held-out predictions.
+    The ensemble side is always ``NNLSStack``, the combination declared as the
+    default, so the reported gain is not the gain of whichever fusion method
+    happened to score best on the test folds. The base learner is still the
+    lowest-RMSE one, which makes the comparison conservative. The
+    ``lowest_error_ensemble`` column records what test-set selection would have
+    picked instead.
     """
     rows = []
     for mode in predictions["mode"].unique():
@@ -696,28 +699,30 @@ def significance_table(
             sub = valid if subset == "ALL" else valid[valid["is_daylight"] == 1]
             met = metrics[(metrics["mode"] == mode) & (metrics["subset"] == subset)]
             ens = met[met["model"].isin(ENSEMBLE_NAMES)].sort_values("RMSE")
+            stack = met[met["model"] == "NNLSStack"]
             base = met[met["model"].isin(BASE_LEARNERS)].sort_values("RMSE")
-            if ens.empty or base.empty:
+            if ens.empty or base.empty or stack.empty:
                 continue
-            best_ens = ens.iloc[0]["model"]
             best_base = base.iloc[0]["model"]
             gain = ensemble_gain(
-                float(ens.iloc[0]["RMSE"]), float(base.iloc[0]["RMSE"])
+                float(stack.iloc[0]["RMSE"]), float(base.iloc[0]["RMSE"])
             )
             dm = diebold_mariano(
                 sub["y_actual"].to_numpy(),
-                sub[best_ens].to_numpy(),
+                sub["NNLSStack"].to_numpy(),
                 sub[best_base].to_numpy(),
                 loss="squared",
-                name_a=best_ens,
+                name_a="NNLSStack",
                 name_b=best_base,
             )
             rows.append(
                 {
                     "mode": mode,
                     "subset": subset,
-                    "best_ensemble": best_ens,
+                    "ensemble": "NNLSStack",
                     "best_base": best_base,
+                    "lowest_error_ensemble": ens.iloc[0]["model"],
+                    "lowest_error_nRMSE_pct": float(ens.iloc[0]["nRMSE_pct"]),
                     **gain,
                     **dm.as_dict(),
                 }
