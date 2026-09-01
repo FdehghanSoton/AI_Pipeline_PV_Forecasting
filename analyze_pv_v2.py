@@ -56,7 +56,11 @@ def _log(msg: str) -> None:
 
 def load_pv_v2(path: Path, time_shift_hours: int = -1) -> pd.DataFrame:
     """PV loader with the time-label correction.
-    PV(t) is relabelled to PV(t + time_shift_hours)."""
+
+    The inverter channel ``PPV`` is solar power in watts. Values are kept in
+    watts throughout; they are not converted to kilowatts.
+    PV(t) is relabelled to PV(t + time_shift_hours).
+    """
     df = pd.read_csv(path, comment="#", skip_blank_lines=True)
     df.columns = [c.strip() for c in df.columns]
     df = df[df["_field"] == "PPV"].copy()
@@ -479,7 +483,7 @@ def main() -> None:
     pv = flag_daylight(pv)
     capacity = float(pv["capacity"].iloc[0])
     _log(
-        f"capacity={capacity:.0f} kW   span: {pv.index.min().date()} → {pv.index.max().date()}"
+        f"capacity={capacity:.0f} W   span: {pv.index.min().date()} → {pv.index.max().date()}"
     )
 
     wx = load_weather()

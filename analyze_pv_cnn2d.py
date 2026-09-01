@@ -6,7 +6,7 @@ For each target day d we build an image-like input of shape
     (channels, days, hours) = (C, 8, 24)
 where the 8 days are the 7 days preceding d and day d itself, and
 channels are:
-    0: PV (kW, normalised), zero on day d (unknown at forecast time)
+    0: PV (W, normalised), zero on day d (unknown at forecast time)
     1: is_past mask           (1 for days 0..6, 0 for day 7)
     2: PV availability mask  (0 where historical PV is missing/held out)
     3..8: 6 weather variables from the configured Open-Meteo archive
@@ -533,7 +533,7 @@ def plot_days(preds_df: pd.DataFrame, out_png: Path) -> None:
         ax.set_xlabel("hour of day")
         ax.legend()
         ax.grid(alpha=0.3)
-    axes[0].set_ylabel("PV (kW)")
+    axes[0].set_ylabel("PV (W)")
     fig.tight_layout()
     fig.savefig(out_png, dpi=140)
     plt.close(fig)

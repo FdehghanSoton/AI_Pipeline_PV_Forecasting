@@ -118,7 +118,7 @@ def figure_error_by_hour(model: str = "NNLSStack") -> None:
         by_hour = group.groupby("hour")["abs_err"].mean()
         ax.bar(by_hour.index, by_hour.to_numpy(), color="steelblue")
         ax.set_xlabel("Hour of day (UTC)")
-        ax.set_ylabel("Mean absolute error (kW)")
+        ax.set_ylabel("Mean absolute error (W)")
         ax.set_title(
             f"{model_labels.mode_label(mode)}\n{model_labels.label(use)}"
         )
@@ -145,7 +145,7 @@ def figure_error_by_clearness(model: str = "NNLSStack") -> None:
         centres = [interval.mid for interval in by_bin.index]
         ax.plot(centres, by_bin.to_numpy(), "o-", color="darkorange")
         ax.set_xlabel("Clearness index $k_t$")
-        ax.set_ylabel("Mean absolute error (kW)")
+        ax.set_ylabel("Mean absolute error (W)")
         ax.set_title(
             f"{model_labels.mode_label(mode)}\n{model_labels.label(use)}"
         )

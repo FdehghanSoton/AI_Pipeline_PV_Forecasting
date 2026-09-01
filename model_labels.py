@@ -21,7 +21,7 @@ BASELINES: tuple[str, ...] = (
 LABEL: dict[str, str] = {
     "Ridge": "Ridge regression",
     "GBM": "Gradient boosting",
-    "GBM_kt": "Clearness-index GBM",
+    "GBM_kt": "POA-normalised GBM",
     "GBM_per_hour": "Per-hour GBM",
     "CNN": "CNN",
     "Mean": "Arithmetic-mean ensemble",
@@ -38,7 +38,7 @@ LABEL: dict[str, str] = {
 SHORT_LABEL: dict[str, str] = {
     "Ridge": "Ridge",
     "GBM": "GBM",
-    "GBM_kt": "Clearness GBM",
+    "GBM_kt": "POA-norm. GBM",
     "GBM_per_hour": "Per-hour GBM",
     "CNN": "CNN",
     "Mean": "Mean ensemble",
@@ -55,7 +55,7 @@ SHORT_LABEL: dict[str, str] = {
 WRAPPED_LABEL: dict[str, str] = {
     "Ridge": "Ridge",
     "GBM": "GBM",
-    "GBM_kt": "Clearness\nGBM",
+    "GBM_kt": "POA-norm.\nGBM",
     "GBM_per_hour": "Per-hour\nGBM",
     "CNN": "CNN",
     "Mean": "Mean\nensemble",
@@ -78,8 +78,8 @@ MODE_LABEL: dict[str, str] = {
 # header is both unreadable and unitless. Keys are lower-cased for lookup.
 METRIC_LABEL: dict[str, str] = {
     "r2": "Daylight $R^2$",
-    "mae": "Mean absolute error (kW)",
-    "rmse": "Root mean squared error (kW)",
+    "mae": "Mean absolute error (W)",
+    "rmse": "Root mean squared error (W)",
     "nmae": "Normalised MAE (% of capacity)",
     "nmae_pct": "Normalised MAE (% of capacity)",
     "nrmse": "Normalised RMSE (% of capacity)",

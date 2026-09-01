@@ -109,7 +109,7 @@ def audit() -> pd.DataFrame:
     # The reason the plane-of-array ratio explodes: a near-zero denominator.
     low_envelope = envelope <= DENOMINATOR_FLOOR_KW * 1.001
     context = {
-        "capacity_kw": round(float(capacity), 1),
+        "capacity_w": round(float(capacity), 1),
         "denominator_floor_kw": DENOMINATOR_FLOOR_KW,
         "n_daylight_observed": int(observed_daylight.sum()),
         "pct_daylight_at_denominator_floor": round(

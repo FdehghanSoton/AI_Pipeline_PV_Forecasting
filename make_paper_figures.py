@@ -190,7 +190,7 @@ def figure_representative_week() -> None:
         week = _representative_week(subset, model)
         ax.plot(week.index, week["y_actual"], linewidth=1.4, label="Observed")
         ax.plot(week.index, week[model], linewidth=1.2, label="Forecast")
-        ax.set_ylabel("PV power (kW)")
+        ax.set_ylabel("PV power (W)")
         ax.set_title(
             f"{model_labels.mode_label(mode)}: {model_labels.label(model)}"
         )

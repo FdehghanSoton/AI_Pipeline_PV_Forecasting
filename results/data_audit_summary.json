@@ -26,8 +26,8 @@
     "n_single_hour_gaps_at_spring_forward": 2,
     "all_spring_forward_hours_are_missing": true
   },
-  "empirical_capacity_q999_kw": 1664.2456542551988,
-  "observed_max_kw": 1724.1479694019454,
+  "empirical_capacity_q999_w": 1664.2456542551988,
+  "observed_max_w": 1724.1479694019454,
   "weather_rows": 9432,
   "weather_start": "2025-03-05 00:00:00+00:00",
   "weather_end": "2026-04-01 23:00:00+00:00",

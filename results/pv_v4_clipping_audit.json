@@ -1,6 +1,6 @@
 {
   "context": {
-    "capacity_kw": 1664.2,
+    "capacity_w": 1664.2,
     "denominator_floor_kw": 1.0,
     "n_daylight_observed": 3869,
     "pct_daylight_at_denominator_floor": 0.0,

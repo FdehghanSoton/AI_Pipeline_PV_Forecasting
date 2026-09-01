@@ -41,7 +41,7 @@ instance: one row per reading, with at least
 | --- | --- |
 | `_time` | ISO-8601 UTC timestamp |
 | `_field` | measurement name; rows with `PPV` are used |
-| `_value` | AC power in kW |
+| `_value` | AC power in watts (inverter channel `PPV`) |
 
 Lines beginning with `#` are ignored, so the annotated CSV that InfluxDB emits
 can be used as-is. Any source giving one hourly power value per timestamp will

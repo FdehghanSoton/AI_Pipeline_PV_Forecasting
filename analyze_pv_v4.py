@@ -767,7 +767,7 @@ def build_dataset(cfg: RunConfig) -> tuple[pd.DataFrame, list[str], float]:
         )
 
     _log(
-        f"capacity={capacity:.0f} kW   span={pv.index.min().date()} -> "
+        f"capacity={capacity:.0f} W   span={pv.index.min().date()} -> "
         f"{pv.index.max().date()}   features={len(feats)}   "
         f"weather={cfg.weather_source}/{cfg.weather_variable_set}   "
         f"daylight={cfg.daylight_policy}   capacity_policy={cfg.capacity_policy}"

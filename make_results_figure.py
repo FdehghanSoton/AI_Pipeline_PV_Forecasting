@@ -96,8 +96,8 @@ def main() -> None:
     lim = float(max(day["y_actual"].max(), day[MODEL].max()))
     ax_scatter.hexbin(day[MODEL], day["y_actual"], gridsize=40, cmap="viridis", mincnt=1)
     ax_scatter.plot([0, lim], [0, lim], "r--", linewidth=1)
-    ax_scatter.set_xlabel("Forecast PV power (kW)")
-    ax_scatter.set_ylabel("Observed PV power (kW)")
+    ax_scatter.set_xlabel("Forecast PV power (W)")
+    ax_scatter.set_ylabel("Observed PV power (W)")
     ax_scatter.set_title(f"Daylight forecast ({MODEL_LABEL})")
     ax_scatter.text(
         0.05,
@@ -117,7 +117,7 @@ def main() -> None:
     forecast = week[MODEL].reindex(full_index)
     ax_week.plot(full_index, actual, linewidth=1.4, label="Observed")
     ax_week.plot(full_index, forecast, linewidth=1.1, label="Forecast")
-    ax_week.set_ylabel("PV power (kW)")
+    ax_week.set_ylabel("PV power (W)")
     ax_week.set_xlabel("UTC timestamp")
     ax_week.set_title("Representative held-out week")
     ax_week.legend(ncol=2, loc="upper right")

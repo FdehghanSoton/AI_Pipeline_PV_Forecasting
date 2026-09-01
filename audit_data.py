@@ -107,8 +107,8 @@ def main() -> None:
             100.0 * runs.loc[runs["hours"] > 72, "hours"].sum() / runs["hours"].sum()
         ),
         "daylight_saving": daylight_saving_report(pv),
-        "empirical_capacity_q999_kw": float(pv["y"].quantile(0.999)),
-        "observed_max_kw": float(raw["_value"].max()),
+        "empirical_capacity_q999_w": float(pv["y"].quantile(0.999)),
+        "observed_max_w": float(raw["_value"].max()),
         "weather_rows": int(len(weather)),
         "weather_start": str(weather["time"].min()),
         "weather_end": str(weather["time"].max()),
