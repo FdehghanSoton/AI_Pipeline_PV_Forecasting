@@ -16,8 +16,8 @@
     they were observed.
 
 ``neither``
-    Both switched off. This is the naive fill-with-zero approach the reviewer
-    warns about, and is the arm the other three should be compared against.
+    Both switched off. This is the naive fill-with-zero approach, and is the
+    arm the other three should be compared against.
 
 Only the CNN's inputs change, so the honest place to read the effect is the
 CNN row. The best ensemble is reported alongside it because the CNN is only

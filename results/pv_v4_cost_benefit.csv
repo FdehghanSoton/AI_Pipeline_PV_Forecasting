@@ -1,13 +1,13 @@
 mode,model,label,ensemble_rmse_without,rmse_increase_pct,fit_seconds,predict_ms_per_day
-KFOLD,Ridge,Ridge regression,203.91,0.0,0.005,0.008
-KFOLD,GBM,Gradient boosting,205.13,0.6,1.965,0.116
-KFOLD,GBM_kt,POA-normalised GBM,203.91,0.0,3.505,1.269
-KFOLD,GBM_per_hour,Per-hour GBM,204.3,0.19,6.505,1.222
-KFOLD,CNN,CNN,215.67,5.77,9.387,0.0
+KFOLD,Ridge,Ridge regression,203.91,0.0,0.009,0.009
+KFOLD,GBM,Gradient boosting,205.13,0.6,1.007,0.116
+KFOLD,GBM_kt,POA-normalised GBM,203.91,0.0,1.789,0.241
+KFOLD,GBM_per_hour,Per-hour GBM,204.3,0.19,3.189,0.332
+KFOLD,CNN,CNN,215.67,5.77,5.99,0.0
 KFOLD,ALL,Full ensemble,203.91,0.0,,
-TEMPORAL,Ridge,Ridge regression,301.12,-1.52,0.005,0.008
-TEMPORAL,GBM,Gradient boosting,305.2,-0.19,1.965,0.116
-TEMPORAL,GBM_kt,POA-normalised GBM,314.63,2.9,3.505,1.269
-TEMPORAL,GBM_per_hour,Per-hour GBM,306.4,0.2,6.505,1.222
-TEMPORAL,CNN,CNN,304.01,-0.58,9.387,0.0
+TEMPORAL,Ridge,Ridge regression,301.12,-1.52,0.009,0.009
+TEMPORAL,GBM,Gradient boosting,305.2,-0.19,1.007,0.116
+TEMPORAL,GBM_kt,POA-normalised GBM,314.63,2.9,1.789,0.241
+TEMPORAL,GBM_per_hour,Per-hour GBM,306.4,0.2,3.189,0.332
+TEMPORAL,CNN,CNN,304.01,-0.58,5.99,0.0
 TEMPORAL,ALL,Full ensemble,305.78,0.0,,

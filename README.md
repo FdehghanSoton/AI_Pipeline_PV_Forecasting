@@ -72,7 +72,7 @@ The experiments that answer specific questions in the paper:
 
 ```bash
 python run_ablations.py --both   # pipeline ablation table (Appendix B), both protocols
-python run_multiseed.py --seeds 0 1 2 3 4   # seed spread on the headline numbers
+python run_multiseed.py --mode BOTH --seeds 0 1 2 3 4   # seed spread on the headline numbers
 python run_weather_experiment.py # analysis vs a 24-hour-lead forecast product, and ERA5
 python audit_clipping.py         # how often the clearness bounds actually bind
 python run_clip_sensitivity.py   # sweep of the clearness-ratio bound
@@ -87,6 +87,8 @@ data?", which are cheap apart from the last:
 
 ```bash
 python audit_baseline_gaps.py    # how often the reference forecasts fall back
+python run_baseline_subset.py    # skill restricted to hours whose 24-hour lag exists
+python run_bootstrap_blocks.py   # day, 3-day, and 7-day block bootstrap of the ensemble gain
 python scan_shift_by_fold.py     # timestamp shift re-selected inside each fold
 python check_stack_constraint.py # what forcing the stack weights to sum to one costs
 python run_shift_sensitivity.py  # the pipeline run at each candidate timestamp shift
@@ -109,6 +111,7 @@ python verify_paper_numbers.py
 | --- | --- | --- |
 | Main results table | `analyze_pv_v4.py` | `pv_v4_metrics.csv` |
 | Baseline fallback rates quoted in Section 5.2 | `audit_baseline_gaps.py` | `pv_v4_baseline_gaps.csv` |
+| Skill on hours with a recorded 24-hour lag, Section 5.2 | `run_baseline_subset.py` | `pv_v4_baseline_subset.csv` |
 | Choice of reference forecast, quoted in Section 5.2 | `run_standard_of_reference.py` | `pv_v4_standard_of_reference.csv` |
 | Stacking-weight constraint check in Appendix A | `check_stack_constraint.py` | `pv_v4_stack_constraint.csv` |
 | Appendix B, "Pipeline Ablation" | `run_ablations.py --both` and `run_shift_sensitivity.py` | `pv_v4_ablation.csv`, `pv_v4_shift_sensitivity.csv` |
@@ -119,7 +122,8 @@ python verify_paper_numbers.py
 | Appendix F, "Computational Cost and Value of Each Base Learner" | `run_cost_benefit.py` | `pv_v4_cost_benefit.csv` |
 | Appendix G, "Missing Data Handling in the Convolutional Network" | `run_mask_ablation.py` | `pv_v4_mask_ablation.csv` |
 | Timestamp-shift scan figure | `scan_time_shift.py` | `pv_time_shift_scan.csv` |
-| Seed spread quoted in the results | `run_multiseed.py` | `pv_v4_multiseed_summary.csv` |
+| Five-run robustness quoted in the results | `run_multiseed.py` | `pv_v4_multiseed_summary.csv` |
+| Day-level and multi-day block bootstrap of the ensemble gain | `analyze_pv_v4.py` and `run_bootstrap_blocks.py` | `pv_v4_significance.csv`, `pv_v4_bootstrap_blocks.csv` |
 | Every number in the paper, checked | `verify_paper_numbers.py` | console report |
 
 ## Configuration
@@ -162,6 +166,14 @@ ruff check .
 `tests/test_regression.py` checks the headline metrics against committed values
 within the tolerances declared in `config.py`. It needs `data/PV_data.csv` and
 is skipped when the measurements are absent.
+
+## Data availability
+
+The code, weather caches, and generated tables are in this repository. Each
+weather cache records the request, the returned grid point, the retrieval
+time, and a SHA-256 checksum of the committed file; see `data/README.md`.
+The inverter measurements are site data that we are not able to redistribute;
+enquiries about access should go to the corresponding author.
 
 ## Citation
 

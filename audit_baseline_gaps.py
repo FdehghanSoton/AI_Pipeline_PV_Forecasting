@@ -7,6 +7,10 @@ and an early rolling-origin fold can be asked about a calendar month it has
 never trained on. This script counts how often each fallback is used, so the
 paper can state the rule and its frequency instead of leaving it implicit.
 
+It reports both the rate at which the 24-hour lag alone is unavailable and the
+rate at which the whole ``LOOKBACK_DAYS`` window is exhausted, since only the
+latter reaches the climatology fallback.
+
 Run ``python audit_baseline_gaps.py``. Writes ``pv_v4_baseline_gaps.csv``.
 """
 
@@ -17,6 +21,7 @@ import pandas as pd
 
 import analyze_pv_v4 as m
 import paths
+from baselines import LOOKBACK_DAYS
 from config import load_config
 
 
@@ -60,9 +65,19 @@ def main() -> None:
         lag_index = scored.index - pd.Timedelta(hours=24)
         lag_missing = int((~lag_index.isin(pv.index[observed])).sum())
 
+        # With the lookback rule, a hole only reaches the climatology fallback
+        # when the same hour is unobserved on every one of the preceding days.
+        deep_gap = np.ones(len(scored), dtype=bool)
+        for day in range(1, LOOKBACK_DAYS + 1):
+            back = scored.index - pd.Timedelta(days=day)
+            deep_gap &= ~back.isin(pv.index[observed])
+        lookback_exhausted = int(deep_gap.sum())
+
         seen = set(zip(train.index.month, train.index.hour, strict=False))
         keys = list(zip(scored.index.month, scored.index.hour, strict=False))
         unseen = sum(1 for key in keys if key not in seen)
+        seen_hours = set(train.index.hour)
+        unseen_hour = sum(1 for _, h in keys if h not in seen_hours)
 
         rows.append(
             {
@@ -70,25 +85,33 @@ def main() -> None:
                 "scored_daylight_hours": len(scored),
                 "lag24_missing": lag_missing,
                 "lag24_missing_pct": 100.0 * lag_missing / max(len(scored), 1),
+                "lookback_exhausted": lookback_exhausted,
+                "lookback_exhausted_pct": (
+                    100.0 * lookback_exhausted / max(len(scored), 1)
+                ),
                 "unseen_month_hour": unseen,
                 "unseen_month_hour_pct": 100.0 * unseen / max(len(scored), 1),
+                "unseen_hour": unseen_hour,
+                "unseen_hour_pct": 100.0 * unseen_hour / max(len(scored), 1),
             }
         )
 
     per_fold = pd.DataFrame(rows)
+    counts = [
+        "lag24_missing",
+        "lookback_exhausted",
+        "unseen_month_hour",
+        "unseen_hour",
+    ]
     totals = (
-        per_fold.groupby("protocol")[
-            ["scored_daylight_hours", "lag24_missing", "unseen_month_hour"]
-        ]
+        per_fold.groupby("protocol")[["scored_daylight_hours", *counts]]
         .sum()
         .reset_index()
     )
-    totals["lag24_missing_pct"] = (
-        100.0 * totals["lag24_missing"] / totals["scored_daylight_hours"]
-    )
-    totals["unseen_month_hour_pct"] = (
-        100.0 * totals["unseen_month_hour"] / totals["scored_daylight_hours"]
-    )
+    for column in counts:
+        totals[column + "_pct"] = (
+            100.0 * totals[column] / totals["scored_daylight_hours"]
+        )
     totals.to_csv(paths.results_dir() / "pv_v4_baseline_gaps.csv", index=False)
 
     print("\n=== Per fold ===")

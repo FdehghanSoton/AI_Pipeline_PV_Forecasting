@@ -31,5 +31,7 @@
   "unavailable_variables": [],
   "retrieved_utc": "2026-08-27T07:43:24Z",
   "n_rows": 9408,
-  "n_missing_values": 0
+  "n_missing_values": 0,
+  "sha256": "01f1c39f585236431bbf6eaac904b588faf30073635568a5f88b589bfed9ccf4",
+  "n_bytes": 834240
 }

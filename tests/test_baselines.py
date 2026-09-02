@@ -22,11 +22,22 @@ def test_persistence_uses_value_24h_earlier() -> None:
     assert np.allclose(pred, np.clip(expected, 0, None))
 
 
-def test_persistence_missing_lookup_is_zero() -> None:
+def test_persistence_falls_back_to_an_earlier_day_not_zero() -> None:
     df = _frame()
-    # First day has no 24 h-earlier value -> zero fallback.
-    pred = b.persistence_24h(df, df.index[:24])
-    assert np.all(pred == 0.0)
+    df.loc[df.index[24:48], "y"] = np.nan
+    test_index = df.index[48:72]
+    pred = b.persistence_24h(df, test_index)
+    # The 24 h lag is missing, so the forecast comes from two days earlier.
+    expected = df["y"].reindex(test_index - pd.Timedelta(days=2)).to_numpy()
+    assert np.allclose(pred, np.clip(expected, 0, None))
+
+
+def test_persistence_falls_back_to_climatology_when_lookback_is_exhausted() -> None:
+    df = _frame()
+    train = df.iloc[:48]
+    # No prior day exists at all for the first 24 hours.
+    pred = b.persistence_24h(df, df.index[:24], train)
+    assert np.allclose(pred, b.climatology(train, df.index[:24]))
 
 
 def test_climatology_is_fitted_on_train_only() -> None:
@@ -40,12 +51,44 @@ def test_climatology_is_fitted_on_train_only() -> None:
         assert np.isclose(value, table.loc[hour])
 
 
+def test_climatology_unseen_month_uses_hour_not_overall_mean() -> None:
+    df = _frame()
+    train = df.iloc[:48]
+    future = pd.date_range("2025-11-01", periods=24, freq="h", tz="UTC")
+    pred = b.climatology(train, future)
+    by_hour = train.groupby(train.index.hour)["y"].mean()
+    assert np.allclose(pred, np.clip(by_hour.loc[future.hour].to_numpy(), 0, None))
+    assert not np.allclose(pred, float(train["y"].mean()))
+
+
 def test_smart_persistence_non_negative_and_shaped() -> None:
     df = _frame()
     test_index = df.index[48:]
     pred = b.smart_persistence(df, test_index, capacity=1000.0)
     assert pred.shape == (len(test_index),)
     assert np.all(pred >= 0.0)
+
+
+def test_smart_persistence_uses_the_capacity_it_is_given() -> None:
+    df = _frame()
+    test_index = df.index[48:]
+    # A capacity low enough to push the carried ratio onto its 1.5 bound stops
+    # the capacity from cancelling, which is why the fold-specific value has to
+    # be passed in rather than a full-record one.
+    bound = b.smart_persistence(df, test_index, capacity=500.0)
+    free = b.smart_persistence(df, test_index, capacity=1600.0)
+    assert not np.allclose(bound, free)
+
+
+def test_baseline_predictions_never_forecast_zero_in_daylight() -> None:
+    df = _frame()
+    df.loc[df.index[24:72], "y"] = np.nan
+    train = df.iloc[:24]
+    test_index = df.index[48:]
+    preds = b.baseline_predictions(df, train, test_index, capacity=1000.0)
+    daylight = df["poa_global"].reindex(test_index).to_numpy() > 50
+    for name, values in preds.items():
+        assert np.all(values[daylight] > 0.0), name
 
 
 def test_skill_score_signs() -> None:

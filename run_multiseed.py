@@ -10,6 +10,7 @@ Usage::
 
     python run_multiseed.py                      # KFOLD, seeds 0..4
     python run_multiseed.py --mode TEMPORAL
+    python run_multiseed.py --mode BOTH          # both protocols, one output
     python run_multiseed.py --seeds 0 1 2 3 4 5 6
 
 Outputs (suffixed by the active PV_RUN_TAG, if any):
@@ -80,7 +81,9 @@ def summarise(raw: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=["KFOLD", "TEMPORAL"], default="KFOLD")
+    parser.add_argument(
+        "--mode", choices=["KFOLD", "TEMPORAL", "BOTH"], default="KFOLD"
+    )
     parser.add_argument(
         "--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4]
     )
@@ -89,10 +92,12 @@ def main() -> None:
     cfg = load_config()
     pv, feats, capacity = build_dataset(cfg)
 
+    modes = ["KFOLD", "TEMPORAL"] if args.mode == "BOTH" else [args.mode]
     blocks = []
-    for seed in args.seeds:
-        _log(f"=== seed {seed} ({args.mode}) ===")
-        blocks.append(run_one_seed(pv, feats, capacity, args.mode, seed, cfg))
+    for mode in modes:
+        for seed in args.seeds:
+            _log(f"=== seed {seed} ({mode}) ===")
+            blocks.append(run_one_seed(pv, feats, capacity, mode, seed, cfg))
     raw = pd.concat(blocks, ignore_index=True)
     raw.to_csv(cfg.tagged("pv_v4_multiseed_raw.csv"), index=False)
 

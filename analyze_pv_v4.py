@@ -59,7 +59,7 @@ from analyze_pv_v3 import (
 )
 from baselines import add_skill_columns, baseline_predictions
 from config import RunConfig, load_config
-from stats_tests import diebold_mariano, ensemble_gain
+from stats_tests import diebold_mariano, ensemble_gain, paired_day_bootstrap
 
 CSV_PATH = paths.PV_CSV
 OUT_DIR = paths.results_dir()
@@ -249,12 +249,14 @@ def fit_one_fold(
 ) -> dict[str, np.ndarray]:
     """Fit all base learners and ensembles for one fold.
 
-    ``capacity`` is the fixed (full-series) value used only as a metric and
-    smart-persistence denominator. ``train_capacity`` is the leakage-safe
-    capacity estimated from this fold's training rows; it drives the clearness
-    target and CNN normalisation so that no test-day magnitude enters the
-    learned signal. With several ``cnn_seeds`` the CNN prediction is the mean
-    across seeds, which reduces single-seed variance.
+    ``capacity`` is the fixed (full-series) value, used only to normalise the
+    reported error metrics so that every protocol is expressed on one scale.
+    ``train_capacity`` is the leakage-safe capacity estimated from this fold's
+    training rows; it drives the clearness target, the CNN normalisation and
+    the reference forecasts, so that no test-day magnitude enters either the
+    learned signal or the baselines it is judged against. With several
+    ``cnn_seeds`` the CNN prediction is the mean across seeds, which reduces
+    single-seed variance.
 
     ``kappa_clip`` bounds the clearness-index GBM's target, the ratio of
     measured power to the plane-of-array clear-sky envelope. The ratio is not
@@ -379,7 +381,7 @@ def fit_one_fold(
     base_preds: dict[str, np.ndarray] = {}
     if include_baselines:
         base_preds = baseline_predictions(
-            pv_full, train_df, test_df.index, capacity
+            pv_full, train_df, test_df.index, train_capacity
         )
     return {**test_preds, **ens, **base_preds}
 
@@ -682,14 +684,20 @@ def aggregate_per_fold(folds: list[FoldRes], capacity: float, mode: str) -> pd.D
 def significance_table(
     predictions: pd.DataFrame, metrics: pd.DataFrame
 ) -> pd.DataFrame:
-    """Diebold-Mariano test of the pre-declared stack vs the best base learner.
+    """Compare the pre-declared stack with a single model chosen on validation.
 
-    The ensemble side is always ``NNLSStack``, the combination declared as the
-    default, so the reported gain is not the gain of whichever fusion method
-    happened to score best on the test folds. The base learner is still the
-    lowest-RMSE one, which makes the comparison conservative. The
-    ``lowest_error_ensemble`` column records what test-set selection would have
-    picked instead.
+    Both sides of the comparison are fixed without consulting the test folds.
+    The ensemble is always ``NNLSStack``, the combination declared as the
+    default, and the single-model comparator is ``BestSingleByVal``, the base
+    learner with the lowest validation RMSE in each fold. Comparing against the
+    lowest test-RMSE learner instead would silently take the best of five draws
+    and overstate the evidence, so that quantity is recorded separately as
+    ``lowest_error_base`` for reference only.
+
+    Significance comes from a paired block bootstrap over target days rather
+    than an hourly Diebold-Mariano test, because hourly errors within a day are
+    strongly dependent. The hourly test statistic is retained in
+    ``dm_statistic_hourly`` to show what that assumption would have bought.
     """
     rows = []
     for mode in predictions["mode"].unique():
@@ -700,31 +708,39 @@ def significance_table(
             met = metrics[(metrics["mode"] == mode) & (metrics["subset"] == subset)]
             ens = met[met["model"].isin(ENSEMBLE_NAMES)].sort_values("RMSE")
             stack = met[met["model"] == "NNLSStack"]
+            comparator = met[met["model"] == "BestSingleByVal"]
             base = met[met["model"].isin(BASE_LEARNERS)].sort_values("RMSE")
-            if ens.empty or base.empty or stack.empty:
+            if ens.empty or base.empty or stack.empty or comparator.empty:
                 continue
-            best_base = base.iloc[0]["model"]
             gain = ensemble_gain(
-                float(stack.iloc[0]["RMSE"]), float(base.iloc[0]["RMSE"])
+                float(stack.iloc[0]["RMSE"]), float(comparator.iloc[0]["RMSE"])
+            )
+            days = pd.DatetimeIndex(sub["timestamp"]).normalize().to_numpy()
+            boot = paired_day_bootstrap(
+                sub["y_actual"].to_numpy(),
+                sub["NNLSStack"].to_numpy(),
+                sub["BestSingleByVal"].to_numpy(),
+                days,
             )
             dm = diebold_mariano(
                 sub["y_actual"].to_numpy(),
                 sub["NNLSStack"].to_numpy(),
-                sub[best_base].to_numpy(),
+                sub["BestSingleByVal"].to_numpy(),
                 loss="squared",
-                name_a="NNLSStack",
-                name_b=best_base,
             )
             rows.append(
                 {
                     "mode": mode,
                     "subset": subset,
                     "ensemble": "NNLSStack",
-                    "best_base": best_base,
+                    "comparator": "BestSingleByVal",
+                    "lowest_error_base": base.iloc[0]["model"],
+                    "lowest_error_base_nRMSE_pct": float(base.iloc[0]["nRMSE_pct"]),
                     "lowest_error_ensemble": ens.iloc[0]["model"],
                     "lowest_error_nRMSE_pct": float(ens.iloc[0]["nRMSE_pct"]),
                     **gain,
-                    **dm.as_dict(),
+                    **boot.as_dict(),
+                    "dm_statistic_hourly": dm.statistic,
                 }
             )
     return pd.DataFrame(rows)

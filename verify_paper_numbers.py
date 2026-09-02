@@ -6,6 +6,7 @@ and the current outputs have drifted apart.
 
 from __future__ import annotations
 
+import json
 import sys
 
 import numpy as np
@@ -36,13 +37,13 @@ for mode, model, subset, r2, nrmse in [
     ("TEMPORAL", "NNLSStack", "ALL", 0.719, 11.37),
     ("TEMPORAL", "NNLSStack", "daylight", 0.532, 17.59),
     ("TEMPORAL", "RidgeStack", "daylight", 0.572, 16.83),
-    ("TEMPORAL", "CNN", "daylight", 0.505, 18.09),
-    ("TEMPORAL", "SmartPersistence", "daylight", 0.478, 18.59),
+    ("TEMPORAL", "BestSingleByVal", "daylight", 0.493, 18.32),
+    ("TEMPORAL", "SmartPersistence", "daylight", 0.475, 18.65),
     ("KFOLD", "NNLSStack", "ALL", 0.859, 8.41),
     ("KFOLD", "NNLSStack", "daylight", 0.765, 12.42),
     ("KFOLD", "RidgeStack", "daylight", 0.761, 12.52),
-    ("KFOLD", "GBM", "daylight", 0.734, 13.23),
-    ("KFOLD", "SmartPersistence", "daylight", 0.505, 18.04),
+    ("KFOLD", "BestSingleByVal", "daylight", 0.730, 13.31),
+    ("KFOLD", "SmartPersistence", "daylight", 0.503, 18.07),
 ]:
     check(f"{mode}/{model}/{subset} R2", r2, metric(m, mode, model, subset, "R2"))
     check(
@@ -53,23 +54,57 @@ for mode, model, subset, r2, nrmse in [
     )
 
 print("\nSkill scores and ensemble gains")
-# The ensemble side of these comparisons is always NNLSStack, the combination
-# declared in advance; see significance_table in analyze_pv_v4.
+# Both sides are fixed without the test folds: NNLSStack is declared in advance
+# and its comparator is the base learner chosen on validation rows.
 sig = pd.read_csv(R / "pv_v4_significance.csv")
 k = sig[(sig["mode"] == "KFOLD") & (sig["subset"] == "daylight")].iloc[0]
 t = sig[(sig["mode"] == "TEMPORAL") & (sig["subset"] == "daylight")].iloc[0]
-check("random-fold ensemble gain (%)", 6.1, k["rel_rmse_gain_pct"], 0.05)
-check("rolling-origin ensemble gain (%)", 2.8, t["rel_rmse_gain_pct"], 0.05)
-for name, row, limit in [("random-fold", k, 1e-7), ("rolling-origin", t, 0.01)]:
-    ok = row["p_value"] < limit
-    print(f"  [{'ok  ' if ok else 'FAIL'}] {name} DM p-value {row['p_value']:.2g} < {limit}")
+check("random-fold ensemble gain (%)", 6.7, k["rel_rmse_gain_pct"], 0.05)
+check("rolling-origin ensemble gain (%)", 4.0, t["rel_rmse_gain_pct"], 0.05)
+for name, row, lo, hi, days in [
+    ("random-fold", k, 4.1, 9.2, 358),
+    ("rolling-origin", t, 2.0, 5.8, 254),
+]:
+    check(f"{name} bootstrap CI low (%)", lo, row["ci_low_pct"], 0.05)
+    check(f"{name} bootstrap CI high (%)", hi, row["ci_high_pct"], 0.05)
+    check(f"{name} bootstrap days", days, row["n_days"], 0)
+    ok = row["p_value"] < 0.001
+    print(f"  [{'ok  ' if ok else 'FAIL'}] {name} bootstrap p {row['p_value']:.2g} < 0.001")
     if not ok:
-        FAILS.append(f"{name} DM p-value")
+        FAILS.append(f"{name} bootstrap p-value")
+blocks = pd.read_csv(R / "pv_v4_bootstrap_blocks.csv")
+for mode, width, lo, hi in [
+    ("KFOLD", 3, 3.8, 9.6),
+    ("KFOLD", 7, 3.0, 10.6),
+    ("TEMPORAL", 3, 1.3, 6.4),
+    ("TEMPORAL", 7, 0.6, 6.7),
+]:
+    row = blocks[(blocks["mode"] == mode) & (blocks["block_days"] == width)].iloc[0]
+    check(f"{mode} {width}-day CI low (%)", lo, row["ci_low_pct"], 0.05)
+    check(f"{mode} {width}-day CI high (%)", hi, row["ci_high_pct"], 0.05)
+    ok = row["ci_low_pct"] > 0
+    print(f"  [{'ok  ' if ok else 'FAIL'}] {mode} {width}-day CI excludes 0")
+    if not ok:
+        FAILS.append(f"{mode} {width}-day CI")
 SKILL = "skill_vs_SmartPersistence"
-check("random-fold skill", 0.311, metric(m, "KFOLD", "NNLSStack", "daylight", SKILL))
+check("random-fold skill", 0.312, metric(m, "KFOLD", "NNLSStack", "daylight", SKILL))
 check(
-    "rolling-origin skill", 0.054, metric(m, "TEMPORAL", "NNLSStack", "daylight", SKILL)
+    "rolling-origin skill", 0.057, metric(m, "TEMPORAL", "NNLSStack", "daylight", SKILL)
 )
+
+print("\nSkill on hours whose 24-hour lag was recorded")
+bs = pd.read_csv(R / "pv_v4_baseline_subset.csv")
+
+
+def subset(mode: str, col: str) -> float:
+    sel = bs[(bs["mode"] == mode) & (bs["subset"] == "lag-24 observed only")]
+    return float(sel[col].iloc[0])
+
+
+check("random-fold retained (%)", 98.2, subset("KFOLD", "pct_of_scored"), 0.05)
+check("rolling-origin retained (%)", 98.8, subset("TEMPORAL", "pct_of_scored"), 0.05)
+check("random-fold skill on subset", 0.305, subset("KFOLD", "skill_NNLS"))
+check("rolling-origin skill on subset", 0.050, subset("TEMPORAL", "skill_NNLS"))
 
 print("\nStacking weights: what forcing a sum of one would cost")
 sc = pd.read_csv(R / "pv_v4_stack_constraint.csv")
@@ -106,15 +141,43 @@ print("\nMulti-seed repetition")
 ms = pd.read_csv(R / "pv_v4_multiseed_summary.csv")
 
 
-def seed(model: str, col: str) -> float:
-    sel = ms[(ms["mode"] == "KFOLD") & (ms["model"] == model) & (ms["subset"] == "daylight")]
+def seed(mode: str, model: str, col: str) -> float:
+    sel = ms[(ms["mode"] == mode) & (ms["model"] == model) & (ms["subset"] == "daylight")]
     return float(sel[col].iloc[0])
 
 
-check("NNLS mean R2", 0.763, seed("NNLSStack", "R2_mean"))
-check("NNLS sd R2", 0.005, seed("NNLSStack", "R2_sd"), 0.0005)
-check("GBM mean R2", 0.731, seed("GBM", "R2_mean"))
-check("GBM sd R2", 0.003, seed("GBM", "R2_sd"), 0.0005)
+check("NNLS mean R2", 0.763, seed("KFOLD", "NNLSStack", "R2_mean"))
+check("NNLS sd R2", 0.005, seed("KFOLD", "NNLSStack", "R2_sd"), 0.0005)
+check("GBM mean R2", 0.731, seed("KFOLD", "GBM", "R2_mean"))
+check("GBM sd R2", 0.003, seed("KFOLD", "GBM", "R2_sd"), 0.0005)
+check("NNLS mean nRMSE", 12.48, seed("KFOLD", "NNLSStack", "nRMSE_pct_mean"), 0.006)
+check("NNLS sd nRMSE", 0.14, seed("KFOLD", "NNLSStack", "nRMSE_pct_sd"), 0.006)
+check("GBM mean nRMSE", 13.29, seed("KFOLD", "GBM", "nRMSE_pct_mean"), 0.006)
+check("GBM sd nRMSE", 0.07, seed("KFOLD", "GBM", "nRMSE_pct_sd"), 0.006)
+check(
+    "rolling NNLS mean nRMSE",
+    17.79,
+    seed("TEMPORAL", "NNLSStack", "nRMSE_pct_mean"),
+    0.006,
+)
+check(
+    "rolling NNLS sd nRMSE",
+    0.19,
+    seed("TEMPORAL", "NNLSStack", "nRMSE_pct_sd"),
+    0.006,
+)
+check(
+    "rolling comparator mean nRMSE",
+    18.32,
+    seed("TEMPORAL", "BestSingleByVal", "nRMSE_pct_mean"),
+    0.006,
+)
+check(
+    "rolling comparator sd nRMSE",
+    0.00,
+    seed("TEMPORAL", "BestSingleByVal", "nRMSE_pct_sd"),
+    0.006,
+)
 
 print("\nAblation table")
 ab = pd.read_csv(R / "pv_v4_ablation.csv")
@@ -152,6 +215,28 @@ folds = byfold[byfold["block"] != "initial training pool"]
 chosen = folds["selected_shift"].value_counts()
 check("folds selecting -1 h", 7, float(chosen.get(-1, 0)), 0)
 check("folds selecting -2 h", 2, float(chosen.get(-2, 0)), 0)
+for block in ("T1", "T3"):
+    row = byfold[byfold["block"] == block].iloc[0]
+    check(
+        f"{block} R2(-2)-R2(-1)",
+        0.004,
+        float(row["R2_shift_-2"] - row["R2_shift_-1"]),
+        0.001,
+    )
+
+pred = pd.read_csv(R / "pv_v4_predictions.csv", parse_dates=["timestamp"])
+windows = {
+    "T1": ("2025-07-04", "2025-09-08"),
+    "T2": ("2025-09-09", "2025-11-14"),
+    "T3": ("2025-11-15", "2026-01-20"),
+    "T4": ("2026-01-21", "2026-03-31"),
+}
+for fold, (start, end) in windows.items():
+    days = pd.DatetimeIndex(
+        pred[(pred["mode"] == "TEMPORAL") & (pred["fold"] == fold)]["timestamp"]
+    ).normalize()
+    check(f"{fold} start day", pd.Timestamp(start).toordinal(), days.min().toordinal(), 0)
+    check(f"{fold} end day", pd.Timestamp(end).toordinal(), days.max().toordinal(), 0)
 
 shift = pd.read_csv(R / "pv_v4_shift_sensitivity.csv")
 
@@ -181,8 +266,14 @@ def gap(mode: str, col: str) -> float:
 
 check("lag-24 missing KFOLD (%)", 1.8, gap("KFOLD", "lag24_missing_pct"), 0.05)
 check("lag-24 missing TEMPORAL (%)", 1.2, gap("TEMPORAL", "lag24_missing_pct"), 0.05)
+check("lookback exhausted KFOLD (%)", 1.1, gap("KFOLD", "lookback_exhausted_pct"), 0.05)
+check("lookback exhausted TEMPORAL (%)", 0.7, gap("TEMPORAL", "lookback_exhausted_pct"), 0.05)
 check("unseen month-hour KFOLD (%)", 0.0, gap("KFOLD", "unseen_month_hour_pct"), 0.05)
 check("unseen month-hour TEMPORAL (%)", 53.8, gap("TEMPORAL", "unseen_month_hour_pct"), 0.05)
+# The hour-of-day fallback always applies, so the overall training mean is never
+# reached; this is what makes the rolling climatology usable at all.
+for mode in ("KFOLD", "TEMPORAL"):
+    check(f"unseen hour {mode} (%)", 0.0, gap(mode, "unseen_hour_pct"), 0.05)
 
 print("\nWeather experiment")
 ws = pd.read_csv(R / "pv_v4_weather_summary.csv")
@@ -211,11 +302,11 @@ for name, cmp_, mode, paper, tol in [
 WSKILL = "skill_vs_smart_persistence"
 check("forecast R2 KFOLD", 0.699, wsum("forecast_day1", "KFOLD", "ensemble_R2"))
 check("forecast R2 TEMPORAL", 0.484, wsum("forecast_day1", "TEMPORAL", "ensemble_R2"))
-check("forecast skill KFOLD", 0.331, wsum("forecast_day1", "KFOLD", WSKILL))
-check("analysis-matched skill KFOLD", 0.311, wsum("analysis_matched", "KFOLD", WSKILL))
+check("forecast skill KFOLD", 0.332, wsum("forecast_day1", "KFOLD", WSKILL))
+check("analysis-matched skill KFOLD", 0.312, wsum("analysis_matched", "KFOLD", WSKILL))
 check(
     "forecast smart-pers nRMSE KFOLD",
-    21.01,
+    21.04,
     wsum("forecast_day1", "KFOLD", "smart_persistence_nRMSE_pct"),
     0.006,
 )
@@ -242,9 +333,9 @@ def cost(label: str, mode: str, col: str) -> float:
 
 
 base = cb[cb["label"] != "Full ensemble"].drop_duplicates("label")
-check("total fit seconds", 21.37, base["fit_seconds"].sum(), 0.05)
-check("total predict ms per day", 2.61, base["predict_ms_per_day"].sum(), 0.05)
-check("GBM alone fit seconds", 1.97, cost("Gradient boosting", "KFOLD", "fit_seconds"), 0.05)
+check("total fit seconds", 11.98, base["fit_seconds"].sum(), 0.05)
+check("total predict ms per day", 0.70, base["predict_ms_per_day"].sum(), 0.05)
+check("GBM alone fit seconds", 1.01, cost("Gradient boosting", "KFOLD", "fit_seconds"), 0.05)
 check("CNN value, random fold (%)", 5.77, cost("CNN", "KFOLD", "rmse_increase_pct"), 0.05)
 check(
     "POA-normalised GBM value, rolling (%)",
@@ -297,11 +388,11 @@ def ref(name: str, mode: str, col: str = "nRMSE_pct") -> float:
     return float(sor[(sor["reference"] == name) & (sor["mode"] == mode)].iloc[0][col])
 
 
-check("smart persistence nRMSE (KFOLD)", 18.04, ref("SmartPersistence", "KFOLD"), 0.006)
+check("smart persistence nRMSE (KFOLD)", 18.07, ref("SmartPersistence", "KFOLD"), 0.006)
 check("combination nRMSE (KFOLD)", 18.18, ref("ClimPersCombination", "KFOLD"), 0.006)
-check("smart persistence nRMSE (TEMPORAL)", 18.59, ref("SmartPersistence", "TEMPORAL"), 0.006)
-check("combination nRMSE (TEMPORAL)", 23.37, ref("ClimPersCombination", "TEMPORAL"), 0.006)
-check("climatology nRMSE (TEMPORAL)", 28.28, ref("Climatology", "TEMPORAL"), 0.006)
+check("smart persistence nRMSE (TEMPORAL)", 18.65, ref("SmartPersistence", "TEMPORAL"), 0.006)
+check("combination nRMSE (TEMPORAL)", 22.27, ref("ClimPersCombination", "TEMPORAL"), 0.006)
+check("climatology nRMSE (TEMPORAL)", 26.98, ref("Climatology", "TEMPORAL"), 0.006)
 # Skill scores use smart persistence, which should be the most accurate reference.
 for mode in ("KFOLD", "TEMPORAL"):
     block = sor[sor["mode"] == mode]
@@ -310,6 +401,15 @@ for mode in ("KFOLD", "TEMPORAL"):
     print(f"  [{'ok  ' if ok else 'FAIL'}] most accurate reference ({mode}): {best}")
     if not ok:
         FAILS.append(f"most accurate reference ({mode}) is {best}, not SmartPersistence")
+
+print("\nMissing-hour runs")
+audit = json.loads((R / "data_audit_summary.json").read_text(encoding="utf-8"))
+check("missing hours in >3-day runs (%)", 91.9, audit["pct_missing_hours_in_runs_over_3_days"], 0.1)
+check("median of all missing runs (h)", 57.0, audit["median_missing_run_hours"], 0.05)
+check("n missing runs", 9, audit["n_missing_runs"], 0.05)
+check("n isolated one-hour gaps", 3, audit["n_single_hour_gaps"], 0.05)
+check("n runs of at least 10 h", 6, audit["n_runs_at_least_10_hours"], 0.05)
+check("n runs longer than 3 days", 4, audit["n_runs_over_3_days"], 0.05)
 
 print()
 if FAILS:

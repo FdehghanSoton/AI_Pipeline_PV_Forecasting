@@ -1,3 +1,3 @@
-protocol,scored_daylight_hours,lag24_missing,unseen_month_hour,lag24_missing_pct,unseen_month_hour_pct
-KFOLD,3869,68,0,1.757560093047299,0.0
-TEMPORAL,2517,29,1353,1.152165276122368,53.75446960667461
+protocol,scored_daylight_hours,lag24_missing,lookback_exhausted,unseen_month_hour,unseen_hour,lag24_missing_pct,lookback_exhausted_pct,unseen_month_hour_pct,unseen_hour_pct
+KFOLD,3869,68,41,0,0,1.757560093047299,1.059705350219695,0.0,0.0
+TEMPORAL,2517,29,18,1353,0,1.152165276122368,0.7151370679380215,53.75446960667461,0.0

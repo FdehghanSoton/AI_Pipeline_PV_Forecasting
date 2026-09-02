@@ -11,7 +11,11 @@
   "partially_missing_days": 14,
   "longest_missing_run_hours": 381,
   "n_missing_runs": 9,
+  "n_single_hour_gaps": 3,
+  "n_runs_at_least_10_hours": 6,
+  "n_runs_over_3_days": 4,
   "median_missing_run_hours": 57.0,
+  "median_run_hours_over_3_days": 167.0,
   "pct_missing_hours_in_runs_over_3_days": 91.93548387096774,
   "daylight_saving": {
     "spring_forward_hours_in_record": [

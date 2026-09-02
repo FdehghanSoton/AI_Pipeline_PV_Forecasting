@@ -32,5 +32,7 @@
   ],
   "retrieved_utc": "2026-08-27T07:43:29Z",
   "n_rows": 9408,
-  "n_missing_values": 0
+  "n_missing_values": 0,
+  "sha256": "4ca4c5713fd7487a41d79ac442e1b367db59e2e7b75ba6effc0f0f985aff0c26",
+  "n_bytes": 755275
 }

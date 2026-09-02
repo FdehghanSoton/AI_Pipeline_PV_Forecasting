@@ -8,8 +8,12 @@ module provides three standard references and a skill-score helper:
 * ``persistence_24h`` - yesterday's measured value at the same hour.
 * ``climatology`` - the training-set mean for each (month, hour), fitted only
   on training rows (no test leakage).
-* ``smart_persistence`` - clear-sky (clearness) persistence: yesterday's
-  clearness ratio applied to today's clear-sky envelope.
+* ``smart_persistence`` - persistence of the clearness ratio, rescaled by the
+  target hour's plane-of-array irradiance.
+
+None of them is allowed to see a held-out measurement: the capacity that scales
+the clearness ratio is the fold's training capacity, and every fallback used
+when an input is unavailable is estimated from training rows.
 
 Each forecaster returns an array aligned to ``test_index``. Baselines are kept
 separate from the ensemble base learners so they never enter the stacking
@@ -25,17 +29,35 @@ import pandas as pd
 BASELINE_NAMES = ("Persistence", "Climatology", "SmartPersistence")
 
 
-def persistence_24h(pv_full: pd.DataFrame, test_index: pd.DatetimeIndex) -> np.ndarray:
-    """Forecast PV(t) with the measured value 24 hours earlier.
+LOOKBACK_DAYS = 7
 
-    Missing or out-of-range lookups fall back to zero. This is the naive
-    diurnal-persistence reference and uses only information available one day
-    before the target hour.
+
+def _same_hour_lookback(
+    series: pd.Series, test_index: pd.DatetimeIndex, max_days: int = LOOKBACK_DAYS
+) -> np.ndarray:
+    """Most recent available value at the same hour, searching back day by day.
+
+    Returns NaN where nothing is available within ``max_days``. Every value it
+    returns precedes the target hour by a whole number of days, so it is known
+    when a day-ahead forecast is issued.
     """
-    y = pv_full["y"]
-    lagged = y.reindex(test_index - pd.Timedelta(hours=24))
-    out = np.nan_to_num(lagged.to_numpy(), nan=0.0)
-    return np.clip(out, 0.0, None)
+    out = np.full(len(test_index), np.nan)
+    for day in range(1, max_days + 1):
+        need = ~np.isfinite(out)
+        if not need.any():
+            break
+        candidate = series.reindex(
+            test_index[need] - pd.Timedelta(days=day)
+        ).to_numpy()
+        filled = out[need]
+        found = np.isfinite(candidate)
+        filled[found] = candidate[found]
+        out[need] = filled
+    return out
+
+
+def _hour_table(values: pd.Series, keys: pd.Index) -> pd.Series:
+    return pd.DataFrame({"v": values.to_numpy(), "k": keys}).groupby("k")["v"].mean()
 
 
 def climatology(
@@ -44,42 +66,86 @@ def climatology(
     """Training-set mean PV for each (month, hour), evaluated on the test index.
 
     The lookup table is fitted only on training rows, so this reference is
-    leakage-free. Unseen (month, hour) combinations fall back to the overall
-    training mean.
+    leakage-free. A (month, hour) pair absent from training falls back to the
+    training mean for that hour across the months that are present, and only
+    then to the overall training mean. The hour-of-day fallback matters under
+    rolling-origin evaluation, where early folds are routinely asked about
+    calendar months they have never seen but always know the diurnal shape.
     """
     train = train_df.copy()
-    months = train.index.month
-    hours = train.index.hour
-    table = (
-        pd.DataFrame({"y": train["y"].to_numpy(), "month": months, "hour": hours})
+    by_month_hour = (
+        pd.DataFrame(
+            {
+                "y": train["y"].to_numpy(),
+                "month": train.index.month,
+                "hour": train.index.hour,
+            }
+        )
         .groupby(["month", "hour"])["y"]
         .mean()
     )
+    by_hour = _hour_table(train["y"], train.index.hour)
     overall = float(train["y"].mean())
-    keys = list(zip(test_index.month, test_index.hour, strict=False))
-    values = [float(table.get((m, h), overall)) for m, h in keys]
+    values = [
+        float(by_month_hour.get((m, h), by_hour.get(h, overall)))
+        for m, h in zip(test_index.month, test_index.hour, strict=False)
+    ]
     return np.clip(np.asarray(values, dtype=float), 0.0, None)
+
+
+def persistence_24h(
+    pv_full: pd.DataFrame,
+    test_index: pd.DatetimeIndex,
+    train_df: pd.DataFrame | None = None,
+) -> np.ndarray:
+    """Forecast PV(t) with the measured value 24 hours earlier.
+
+    When that hour was not recorded, the forecast falls back to the most recent
+    observation at the same hour within ``LOOKBACK_DAYS``, and then to the
+    training climatology. Substituting zero instead would put a confident
+    zero-generation forecast into daylight hours and inflate the reference
+    error, which flatters every model scored against it.
+    """
+    out = _same_hour_lookback(pv_full["y"], test_index)
+    if train_df is not None:
+        out = np.where(np.isfinite(out), out, climatology(train_df, test_index))
+    return np.clip(np.nan_to_num(out, nan=0.0), 0.0, None)
 
 
 def smart_persistence(
     pv_full: pd.DataFrame,
     test_index: pd.DatetimeIndex,
     capacity: float,
+    train_df: pd.DataFrame | None = None,
     poa_col: str = "poa_global",
 ) -> np.ndarray:
-    """Clear-sky (clearness) persistence baseline.
+    """Persistence of the clearness ratio, rescaled by target-day irradiance.
 
-    The clear-sky power envelope is approximated by ``capacity * POA / 1000``.
-    Yesterday's clearness ratio (measured power divided by that envelope) is
-    carried forward and multiplied by today's envelope. This removes the
-    deterministic solar cycle from the persistence forecast and is a stronger
-    reference than naive persistence around sunrise and sunset.
+    The generation envelope is approximated by ``capacity * POA / 1000``. The
+    most recent available ratio of measured power to that envelope at the same
+    hour is carried forward and multiplied by the target hour's envelope, which
+    removes the deterministic solar cycle from the persistence forecast and
+    makes it a stronger reference than naive persistence near sunrise and
+    sunset. A ratio that is unavailable within ``LOOKBACK_DAYS`` falls back to
+    the mean training ratio for that hour.
+
+    ``capacity`` should be the fold's training capacity: it does not cancel
+    between the ratio and the rescaling once the ratio is bounded, so passing a
+    full-record value would let held-out hours influence the reference.
     """
     envelope_full = np.maximum(capacity * pv_full[poa_col] / 1000.0, 1.0)
     ratio_full = (pv_full["y"] / envelope_full).clip(0.0, 1.5)
 
-    ratio_prev = ratio_full.reindex(test_index - pd.Timedelta(hours=24))
-    ratio_prev = np.nan_to_num(ratio_prev.to_numpy(), nan=0.0)
+    ratio_prev = _same_hour_lookback(ratio_full, test_index)
+    if train_df is not None:
+        train_ratio = ratio_full.reindex(train_df.index)
+        by_hour = _hour_table(train_ratio, train_df.index.hour)
+        overall = float(train_ratio.mean())
+        fallback = np.asarray(
+            [float(by_hour.get(h, overall)) for h in test_index.hour], dtype=float
+        )
+        ratio_prev = np.where(np.isfinite(ratio_prev), ratio_prev, fallback)
+    ratio_prev = np.nan_to_num(ratio_prev, nan=0.0)
 
     envelope_today = pv_full[poa_col].reindex(test_index)
     envelope_today = np.maximum(
@@ -94,11 +160,17 @@ def baseline_predictions(
     test_index: pd.DatetimeIndex,
     capacity: float,
 ) -> dict[str, np.ndarray]:
-    """Compute all reference baselines for one fold's test index."""
+    """Compute all reference baselines for one fold's test index.
+
+    ``capacity`` is the fold's training capacity, so no reference forecast is
+    informed by a held-out measurement.
+    """
     return {
-        "Persistence": persistence_24h(pv_full, test_index),
+        "Persistence": persistence_24h(pv_full, test_index, train_df),
         "Climatology": climatology(train_df, test_index),
-        "SmartPersistence": smart_persistence(pv_full, test_index, capacity),
+        "SmartPersistence": smart_persistence(
+            pv_full, test_index, capacity, train_df
+        ),
     }
 
 

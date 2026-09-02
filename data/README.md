@@ -8,7 +8,8 @@ PV measurements are not.
 Hourly weather for the site, retrieved from the [Open-Meteo](https://open-meteo.com)
 API. Each cache has a `.meta.json` recording the model, the requested and
 returned grid point, the variable list, the date range and the retrieval time,
-so any number in the paper can be traced to a specific product.
+so any number in the paper can be traced to a specific product. Each
+``.meta.json`` also stores a SHA-256 checksum of the committed CSV.
 
 | File | Product | Used for |
 | --- | --- | --- |

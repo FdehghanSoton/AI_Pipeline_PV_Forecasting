@@ -102,7 +102,14 @@ def main() -> None:
         "partially_missing_days": int(((day_missing > 0) & (day_missing < 24)).sum()),
         "longest_missing_run_hours": int(runs.iloc[0]["hours"]),
         "n_missing_runs": int(len(runs)),
+        "n_single_hour_gaps": int((runs["hours"] == 1).sum()),
+        "n_runs_at_least_10_hours": int((runs["hours"] >= 10).sum()),
+        "n_runs_over_3_days": int((runs["hours"] > 72).sum()),
+        # Median over every missing run, including isolated one-hour gaps.
         "median_missing_run_hours": float(runs["hours"].median()),
+        "median_run_hours_over_3_days": float(
+            runs.loc[runs["hours"] > 72, "hours"].median()
+        ),
         "pct_missing_hours_in_runs_over_3_days": float(
             100.0 * runs.loc[runs["hours"] > 72, "hours"].sum() / runs["hours"].sum()
         ),
