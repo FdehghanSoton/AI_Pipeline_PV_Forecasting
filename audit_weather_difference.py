@@ -1,4 +1,4 @@
-"""Quantify how far the issued day-ahead forecast is from the analysis.
+"""Quantify how far the constant-lead forecast product is from the analysis.
 
 Differences are reported on the daylight subset defined exactly as everywhere
 else in the paper, by solar elevation above five degrees, because that is the
@@ -73,7 +73,7 @@ def main() -> None:
     table = pd.DataFrame(rows)
     table.to_csv(paths.results_dir() / "pv_v4_weather_difference.csv", index=False)
 
-    print("\n=== Issued day-ahead forecast against the analysis it replaces ===\n")
+    print("\n=== Constant-lead forecast product against the analysis it replaces ===\n")
     print(table.to_string(index=False, float_format="%.2f"))
     print("\nWrote pv_v4_weather_difference.csv")
 

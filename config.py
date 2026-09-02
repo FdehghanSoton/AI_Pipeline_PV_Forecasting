@@ -90,8 +90,9 @@ class RunConfig:
         default ``-1`` is the empirically selected alignment correction; set
         to ``0`` for the no-alignment ablation.
     capacity_policy
-        ``"fold_train"`` estimates the capacity used by the clearness target
-        and CNN normalisation from each fold's training rows (leakage-safe);
+        ``"fold_train"`` estimates the capacity used by the POA-normalised
+        target, CNN normalisation, and smart persistence from each fold's
+        training rows (leakage-safe);
         ``"global"`` uses the full-series 99.9th percentile everywhere.
     metric_capacity_policy
         Denominator used for normalised metrics. Kept at ``"global"`` so that
@@ -105,21 +106,22 @@ class RunConfig:
         Missing-data sensitivity: drop every day containing any missing PV
         measurement before backtesting.
     cnn_seeds
-        One or more seeds for the CNN. With several seeds the per-fold CNN
-        prediction is the mean across seeds (seed averaging).
+        Offsets added to a deterministic fold-tag hash to form the CNN training
+        seed. The default ``(0,)`` is offset 0, not torch seed 0. With several
+        offsets the per-fold CNN prediction is the mean across them.
     weather_source
         Which weather product feeds the models. ``"ifs"`` is the ECMWF IFS
         operational analysis archive used for the headline results, ``"era5"``
         is the ERA5 reanalysis sensitivity check, and ``"forecast_day1"`` is
-        the day-ahead forecast as it was actually issued, which is the only
-        setting free of target-day hindsight.
+        the constant-24-hour-lead previous-runs product, assembled from
+        successive model updates rather than one issuance.
     weather_variable_set
         ``"full"`` uses all fifteen weather variables. ``"forecast_matched"``
-        uses only the twelve the day-ahead forecast archive also serves, so
+        uses only the twelve the previous-runs forecast product also serves, so
         that an analysis run can be compared with a forecast run without the
         difference being confounded by a different feature set.
     kappa_clip
-        Upper bound on the clearness-index GBM's target, the ratio of measured
+        Upper bound on the POA-normalised GBM's target, the ratio of measured
         power to the plane-of-array clear-sky envelope. Set to a large value or
         infinity to disable it; ``run_clip_sensitivity.py`` sweeps it.
     cnn_availability_channel

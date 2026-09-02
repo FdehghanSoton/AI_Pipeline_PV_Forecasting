@@ -84,8 +84,8 @@ def load_weather_full(
 
     ``source`` selects the Open-Meteo product (see :mod:`weather_sources`).
     ``variable_set`` is ``"full"`` for all fifteen variables or
-    ``"forecast_matched"`` for the twelve that the day-ahead forecast archive
-    also serves, which keeps analysis and forecast runs comparable.
+    ``"forecast_matched"`` for the twelve that the previous-runs forecast
+    product also serves, which keeps analysis and forecast runs comparable.
 
     Feature construction downstream is column-driven, so dropping the three
     sub-level cloud fields automatically drops their lag, lead and rolling

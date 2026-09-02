@@ -65,15 +65,15 @@ python make_paper_figures.py     # model comparison, residual correlation, week
 python make_results_figure.py    # main-text results figure
 python make_appendix_figures.py  # appendix figures (skips absent inputs)
 python make_weights_figure.py    # stacking weights
-python make_pipeline_diagram.py  # Figure 1
+python make_pipeline_diagram.py  # pipeline diagram
 ```
 
 The experiments that answer specific questions in the paper:
 
 ```bash
 python run_ablations.py --both   # pipeline ablation table (Appendix B), both protocols
-python run_multiseed.py --mode BOTH --seeds 0 1 2 3 4   # seed spread on the headline numbers
-python run_weather_experiment.py # analysis vs a 24-hour-lead forecast product, and ERA5
+python run_multiseed.py --mode BOTH --seeds 0 1 2 3 4   # five-run robustness of the headline numbers
+python run_weather_experiment.py # analysis vs a constant-24-hour-lead forecast product, and ERA5
 python audit_clipping.py         # how often the clearness bounds actually bind
 python run_clip_sensitivity.py   # sweep of the clearness-ratio bound
 python run_mask_ablation.py      # what the CNN's missingness handling is worth
@@ -116,11 +116,12 @@ python verify_paper_numbers.py
 | Stacking-weight constraint check in Appendix A | `check_stack_constraint.py` | `pv_v4_stack_constraint.csv` |
 | Appendix B, "Pipeline Ablation" | `run_ablations.py --both` and `run_shift_sensitivity.py` | `pv_v4_ablation.csv`, `pv_v4_shift_sensitivity.csv` |
 | Appendix B, per-fold timestamp selection | `scan_shift_by_fold.py` | `pv_shift_by_fold.csv` |
-| Appendix C, "Choice of Weather Product" | `run_weather_experiment.py` | `pv_v4_weather_metrics.csv` |
+| Appendix C, constant-24-hour-lead forecast-product sensitivity | `run_weather_experiment.py` | `pv_v4_weather_metrics.csv` |
 | Appendix D, "Sensitivity to the POA-Normalised Target Bound" | `run_clip_sensitivity.py` | `pv_v4_clip_sensitivity.csv` |
 | Appendix E, "Pricing Forecast Error as a Commitment Cost" | `run_operational_value.py` | `pv_v4_operational_value.csv` |
 | Appendix F, "Computational Cost and Value of Each Base Learner" | `run_cost_benefit.py` | `pv_v4_cost_benefit.csv` |
 | Appendix G, "Missing Data Handling in the Convolutional Network" | `run_mask_ablation.py` | `pv_v4_mask_ablation.csv` |
+| Appendix H, model settings | (listed in the paper; source in `analyze_pv_v4.py` and `analyze_pv_cnn2d.py`) | --- |
 | Timestamp-shift scan figure | `scan_time_shift.py` | `pv_time_shift_scan.csv` |
 | Five-run robustness quoted in the results | `run_multiseed.py` | `pv_v4_multiseed_summary.csv` |
 | Day-level and multi-day block bootstrap of the ensemble gain | `analyze_pv_v4.py` and `run_bootstrap_blocks.py` | `pv_v4_significance.csv`, `pv_v4_bootstrap_blocks.csv` |

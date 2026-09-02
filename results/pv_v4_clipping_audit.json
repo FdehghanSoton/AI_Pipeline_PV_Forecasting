@@ -24,7 +24,7 @@
     {
       "quantity": "kappa",
       "formula": "measured power / plane-of-array clear-sky power envelope",
-      "role": "clearness-index GBM target",
+      "role": "POA-normalised GBM target",
       "upper_bound": 1.5,
       "n_daylight_observed": 3869,
       "n_above_bound": 398,

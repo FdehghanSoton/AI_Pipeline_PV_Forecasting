@@ -1,8 +1,8 @@
-"""Weather-source experiment: retrospective analysis versus real day-ahead forecast.
+"""Weather-source experiment: retrospective analysis versus a constant-lead forecast product.
 
-The headline results of the paper take target-day weather from a historical
-analysis archive, which no operational forecaster can access before the target
-day. This script quantifies what that hindsight is worth by running the same
+The headline results take target-day weather from a historical analysis
+archive, which no operational forecaster can access before the target day.
+This script quantifies what that hindsight is worth by running the same
 pipeline on four weather inputs:
 
 ``analysis_full``
@@ -11,19 +11,20 @@ pipeline on four weather inputs:
 
 ``analysis_matched``
     ECMWF IFS operational analysis, restricted to the twelve variables the
-    day-ahead forecast archive also serves. This is the correct comparison
-    point for the operational run, because it differs from it only in whether
-    the target day is known.
+    previous-runs forecast product also serves. This is the correct comparison
+    point for the forecast-product run, because it differs from it only in
+    whether the target day is known.
 
 ``forecast_day1``
-    The day-ahead forecast as it was actually issued, twelve variables. No
-    target-day hindsight anywhere in the input.
+    A constant 24-hour-lead profile from the Open-Meteo previous-runs product,
+    twelve variables. The profile is assembled from successive model updates,
+    not from one forecast issuance, and the request is not pinned to the IFS.
 
 ``era5_full``
     ERA5 reanalysis, all fifteen variables. Weather-product sensitivity only.
 
-The ``analysis_matched`` to ``forecast_day1`` step is the operational penalty:
-it isolates forecast error in the weather input from every other difference.
+The ``analysis_matched`` to ``forecast_day1`` step is the forecast-input
+penalty: it mixes forecast lead with a change of weather product.
 
 Each configuration is a full backtest under both protocols, so this script
 runs the pipeline four times.

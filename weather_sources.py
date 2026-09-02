@@ -15,10 +15,10 @@ sidecar metadata file recording exactly which Open-Meteo product produced it:
     the weather-product sensitivity check only.
 
 ``forecast_day1``
-    The day-ahead forecast **as it was actually issued**, retrieved from the
-    Open-Meteo previous-model-runs archive via the ``_previous_day1`` suffix.
-    This is the only source that contains no target-day hindsight, so it is
-    the one that measures operational rather than retrospective skill.
+    A constant 24-hour-lead profile from the Open-Meteo previous-model-runs
+    archive via the ``_previous_day1`` suffix. The profile is assembled from
+    successive model updates, not from one forecast issuance, and the request
+    is not pinned to the IFS.
 
 The model is always sent explicitly, never left to ``best_match``, so a rerun
 returns the same product regardless of any future change to Open-Meteo's
@@ -133,8 +133,8 @@ SOURCES: dict[str, WeatherSource] = {
         variables=FORECAST_VARS,
         variable_suffix="_previous_day1",
         description=(
-            "Day-ahead forecast as issued, from the Open-Meteo "
-            "previous-model-runs archive (_previous_day1)"
+            "Constant 24-hour-lead profile from the Open-Meteo "
+            "previous-model-runs archive (_previous_day1); not one issuance"
         ),
     ),
 }

@@ -1,6 +1,6 @@
 {
   "source": "forecast_day1",
-  "description": "Day-ahead forecast as issued, from the Open-Meteo previous-model-runs archive (_previous_day1)",
+  "description": "Constant 24-hour-lead profile from the Open-Meteo previous-model-runs archive (_previous_day1); not one issuance",
   "open_meteo_url": "https://previous-runs-api.open-meteo.com/v1/forecast",
   "open_meteo_model": "previous_runs_day1",
   "variable_suffix": "_previous_day1",

@@ -252,13 +252,14 @@ def fit_one_fold(
     ``capacity`` is the fixed (full-series) value, used only to normalise the
     reported error metrics so that every protocol is expressed on one scale.
     ``train_capacity`` is the leakage-safe capacity estimated from this fold's
-    training rows; it drives the clearness target, the CNN normalisation and
-    the reference forecasts, so that no test-day magnitude enters either the
-    learned signal or the baselines it is judged against. With several
-    ``cnn_seeds`` the CNN prediction is the mean across seeds, which reduces
-    single-seed variance.
+    training rows; it is passed to the POA-normalised target, the CNN
+    normalisation, and ``baseline_predictions``, so that no test-day magnitude
+    enters the learned signal or the reference forecasts. With several
+    ``cnn_seeds`` the CNN prediction is the mean across seed offsets. Each
+    offset is added to a fold-tag hash; the default ``(0,)`` is offset 0, not
+    torch seed 0.
 
-    ``kappa_clip`` bounds the clearness-index GBM's target, the ratio of
+    ``kappa_clip`` bounds the POA-normalised GBM's target, the ratio of
     measured power to the plane-of-array clear-sky envelope. The ratio is not
     physically bounded, because it compares a point measurement with an
     estimate transposed from a grid cell, so it grows without limit when the

@@ -6,7 +6,7 @@ The bound is applied in three places that are not equivalent:
     Feature: GHI / top-of-atmosphere irradiance. Stays near or below 1.
 
 ``kappa``
-    Clearness-index GBM target: measured power / plane-of-array clear-sky
+    POA-normalised GBM target: measured power / plane-of-array clear-sky
     power. Can become large at low sun elevation.
 
 ``smart_persistence_ratio``
@@ -94,7 +94,7 @@ def audit() -> pd.DataFrame:
             "measured power / plane-of-array clear-sky power envelope",
             ratio_raw,
             UPPER_BOUND,
-            "clearness-index GBM target",
+            "POA-normalised GBM target",
         ),
         _describe(
             "smart_persistence_ratio",
