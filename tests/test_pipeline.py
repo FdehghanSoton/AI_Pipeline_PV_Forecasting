@@ -39,6 +39,25 @@ def test_cnn_missing_targets_receive_zero_loss_weight() -> None:
     assert weights[-1, 11].item() == 4.0
 
 
+def test_rolling_validation_split_uses_whole_calendar_days() -> None:
+    from analyze_pv_v4 import temporal_train_val_split
+
+    idx = pd.date_range("2025-01-01", periods=20 * 24 + 10, freq="h", tz="UTC")
+    frame = pd.DataFrame(
+        {"y": np.arange(len(idx), dtype=float), "is_missing": 0}, index=idx
+    )
+    # Drop a few hours so a row-level 15% cut would land inside a day.
+    frame = frame.iloc[:-5]
+    train, val = temporal_train_val_split(frame)
+    train_days = set(train.index.normalize().unique())
+    val_days = set(val.index.normalize().unique())
+    assert train_days.isdisjoint(val_days)
+    all_days = pd.DatetimeIndex(frame.index.normalize().unique())
+    n_val = max(7, int(np.ceil(0.15 * len(all_days))))
+    assert val_days == set(all_days[-n_val:])
+    assert train_days == set(all_days[:-n_val])
+
+
 def test_held_out_pv_is_hidden_from_cnn_history() -> None:
     days, hours = 10, 24
     pv = np.zeros((days, hours), dtype=np.float32)

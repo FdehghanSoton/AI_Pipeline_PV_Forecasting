@@ -167,6 +167,10 @@ def fit_cnn_for_fold(
     wx_mat = (wx_mat_raw - mean) / std
     wx_mat = np.nan_to_num(wx_mat, nan=0.0).astype(np.float32)
 
+    # Same mask under both protocols: validation and test PV never appear as
+    # history. Under rolling-origin this is a fixed-window forecast of the
+    # whole test period (no new PV during the window, including the validation
+    # days immediately before it).
     hidden_days = val_days.append(test_days).unique()
     X, Y, W, _E, target_days = build_supervised_tensors(
         pv_mat,
@@ -396,6 +400,28 @@ def _fold_train_capacity(
     return capacity
 
 
+def temporal_train_val_split(
+    train_full: pd.DataFrame,
+    val_frac: float = 0.15,
+    min_val_days: int = 7,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Hold out the most recent complete calendar days for validation.
+
+    ``train_full`` is the observed rows before the test origin. The last
+    ``max(min_val_days, ceil(val_frac * n_days))`` unique days become the
+    validation set, so the cut cannot fall inside a calendar day and the same
+    day cannot appear in both the CNN training and validation day sets.
+    """
+    days = pd.DatetimeIndex(train_full.index.normalize().unique())
+    n_val = max(min_val_days, int(np.ceil(val_frac * len(days))))
+    n_val = min(n_val, max(len(days) - 1, 1))
+    val_days = days[-n_val:]
+    train_days = days[:-n_val]
+    train = train_full[train_full.index.normalize().isin(train_days)]
+    val = train_full[train_full.index.normalize().isin(val_days)]
+    return train, val
+
+
 def temporal_backtest(
     pv_full: pd.DataFrame,
     df: pd.DataFrame,
@@ -420,8 +446,7 @@ def temporal_backtest(
         train_full = df[(df.index < ts) & (df["is_missing"] == 0)]
         if len(train_full) < 200:
             continue
-        val_size = max(7 * 24, int(0.15 * len(train_full)))
-        train, val = train_full.iloc[:-val_size], train_full.iloc[-val_size:]
+        train, val = temporal_train_val_split(train_full)
         test = df[(df.index >= ts) & (df.index < te)]
         _log(
             f"T fold {fold + 1}/{n_folds}  origin={ts.date()}  "

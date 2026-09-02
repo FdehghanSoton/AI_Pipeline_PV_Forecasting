@@ -34,11 +34,11 @@ def metric(m: pd.DataFrame, mode: str, model: str, subset: str, col: str) -> flo
 print("Table 1: headline results")
 m = pd.read_csv(R / "pv_v4_metrics.csv")
 for mode, model, subset, r2, nrmse in [
-    ("TEMPORAL", "NNLSStack", "ALL", 0.719, 11.37),
-    ("TEMPORAL", "NNLSStack", "daylight", 0.532, 17.59),
-    ("TEMPORAL", "RidgeStack", "daylight", 0.572, 16.83),
-    ("TEMPORAL", "BestSingleByVal", "daylight", 0.493, 18.32),
-    ("TEMPORAL", "SmartPersistence", "daylight", 0.475, 18.65),
+    ("TEMPORAL", "NNLSStack", "ALL", 0.704, 11.68),
+    ("TEMPORAL", "NNLSStack", "daylight", 0.506, 18.09),
+    ("TEMPORAL", "RidgeStack", "daylight", 0.546, 17.34),
+    ("TEMPORAL", "BestSingleByVal", "daylight", 0.474, 18.65),
+    ("TEMPORAL", "SmartPersistence", "daylight", 0.476, 18.63),
     ("KFOLD", "NNLSStack", "ALL", 0.859, 8.41),
     ("KFOLD", "NNLSStack", "daylight", 0.765, 12.42),
     ("KFOLD", "RidgeStack", "daylight", 0.761, 12.52),
@@ -60,10 +60,10 @@ sig = pd.read_csv(R / "pv_v4_significance.csv")
 k = sig[(sig["mode"] == "KFOLD") & (sig["subset"] == "daylight")].iloc[0]
 t = sig[(sig["mode"] == "TEMPORAL") & (sig["subset"] == "daylight")].iloc[0]
 check("random-fold ensemble gain (%)", 6.7, k["rel_rmse_gain_pct"], 0.05)
-check("rolling-origin ensemble gain (%)", 4.0, t["rel_rmse_gain_pct"], 0.05)
+check("rolling-origin ensemble gain (%)", 3.0, t["rel_rmse_gain_pct"], 0.05)
 for name, row, lo, hi, days in [
     ("random-fold", k, 4.1, 9.2, 358),
-    ("rolling-origin", t, 2.0, 5.8, 254),
+    ("rolling-origin", t, 1.5, 4.4, 254),
 ]:
     check(f"{name} bootstrap CI low (%)", lo, row["ci_low_pct"], 0.05)
     check(f"{name} bootstrap CI high (%)", hi, row["ci_high_pct"], 0.05)
@@ -76,8 +76,8 @@ blocks = pd.read_csv(R / "pv_v4_bootstrap_blocks.csv")
 for mode, width, lo, hi in [
     ("KFOLD", 3, 3.8, 9.6),
     ("KFOLD", 7, 3.0, 10.6),
-    ("TEMPORAL", 3, 1.3, 6.4),
-    ("TEMPORAL", 7, 0.6, 6.7),
+    ("TEMPORAL", 3, 1.0, 4.8),
+    ("TEMPORAL", 7, 0.4, 5.1),
 ]:
     row = blocks[(blocks["mode"] == mode) & (blocks["block_days"] == width)].iloc[0]
     check(f"{mode} {width}-day CI low (%)", lo, row["ci_low_pct"], 0.05)
@@ -89,7 +89,7 @@ for mode, width, lo, hi in [
 SKILL = "skill_vs_SmartPersistence"
 check("random-fold skill", 0.312, metric(m, "KFOLD", "NNLSStack", "daylight", SKILL))
 check(
-    "rolling-origin skill", 0.057, metric(m, "TEMPORAL", "NNLSStack", "daylight", SKILL)
+    "rolling-origin skill", 0.029, metric(m, "TEMPORAL", "NNLSStack", "daylight", SKILL)
 )
 
 print("\nSkill on hours whose 24-hour lag was recorded")
@@ -104,7 +104,7 @@ def subset(mode: str, col: str) -> float:
 check("random-fold retained (%)", 98.2, subset("KFOLD", "pct_of_scored"), 0.05)
 check("rolling-origin retained (%)", 98.8, subset("TEMPORAL", "pct_of_scored"), 0.05)
 check("random-fold skill on subset", 0.305, subset("KFOLD", "skill_NNLS"))
-check("rolling-origin skill on subset", 0.050, subset("TEMPORAL", "skill_NNLS"))
+check("rolling-origin skill on subset", 0.022, subset("TEMPORAL", "skill_NNLS"))
 
 print("\nStacking weights: what forcing a sum of one would cost")
 sc = pd.read_csv(R / "pv_v4_stack_constraint.csv")
@@ -117,17 +117,17 @@ def stack(mode: str, variant: str) -> float:
 
 for mode, fitted, renormalised, convex in [
     ("KFOLD", 12.42, 12.30, 12.54),
-    ("TEMPORAL", 17.59, 18.03, 17.91),
+    ("TEMPORAL", 18.09, 18.71, 18.10),
 ]:
     check(f"{mode} stack as fitted", fitted, stack(mode, "NNLSStack"), 0.006)
     check(f"{mode} stack renormalised", renormalised, stack(mode, "NNLSRenormalised"), 0.006)
     check(f"{mode} stack convex", convex, stack(mode, "NNLSConvex"), 0.006)
-for mode, total in [("KFOLD", 1.03), ("TEMPORAL", 1.06)]:
+for mode, total in [("KFOLD", 1.03), ("TEMPORAL", 1.10)]:
     row = sc[sc["mode"] == mode].iloc[0]
     check(f"{mode} mean weight sum", total, row["mean_raw_weight_sum"])
 
 print("\nResidual correlations")
-for mode, lo, hi, mean in [("kfold", 0.71, 0.74, 0.80), ("temporal", 0.80, 0.86, 0.83)]:
+for mode, lo, hi, mean in [("kfold", 0.71, 0.74, 0.80), ("temporal", 0.81, 0.88, 0.84)]:
     c = pd.read_csv(R / f"pv_v4_residual_corr_{mode}.csv", index_col=0)
     cnn = c["CNN"].drop("CNN")
     check(f"{mode} CNN min rho", lo, cnn.min(), 0.005)
@@ -156,25 +156,25 @@ check("GBM mean nRMSE", 13.29, seed("KFOLD", "GBM", "nRMSE_pct_mean"), 0.006)
 check("GBM sd nRMSE", 0.07, seed("KFOLD", "GBM", "nRMSE_pct_sd"), 0.006)
 check(
     "rolling NNLS mean nRMSE",
-    17.79,
+    18.07,
     seed("TEMPORAL", "NNLSStack", "nRMSE_pct_mean"),
     0.006,
 )
 check(
     "rolling NNLS sd nRMSE",
-    0.19,
+    0.12,
     seed("TEMPORAL", "NNLSStack", "nRMSE_pct_sd"),
     0.006,
 )
 check(
     "rolling comparator mean nRMSE",
-    18.32,
+    18.78,
     seed("TEMPORAL", "BestSingleByVal", "nRMSE_pct_mean"),
     0.006,
 )
 check(
     "rolling comparator sd nRMSE",
-    0.00,
+    0.28,
     seed("TEMPORAL", "BestSingleByVal", "nRMSE_pct_sd"),
     0.006,
 )
@@ -189,10 +189,10 @@ def abl(label: str, mode: str, col: str) -> float:
 
 
 for label, kr2, kn, tr2, tn in [
-    ("full", 0.765, 12.42, 0.532, 17.59),
-    ("no_alignment", 0.788, 12.02, 0.580, 17.01),
-    ("calendar_only", 0.763, 12.46, 0.668, 14.83),
-    ("no_temporal", 0.763, 12.49, 0.516, 17.90),
+    ("full", 0.765, 12.42, 0.506, 18.09),
+    ("no_alignment", 0.788, 12.02, 0.577, 17.08),
+    ("calendar_only", 0.763, 12.46, 0.660, 15.00),
+    ("no_temporal", 0.763, 12.49, 0.500, 18.19),
 ]:
     for mode, r2, nrmse in [("KFOLD", kr2, kn), ("TEMPORAL", tr2, tn)]:
         check(f"ablation {label} {mode} R2", r2, abl(label, mode, "ensemble_R2"))
@@ -249,12 +249,12 @@ def by_shift(mode: str, hours: int) -> float:
 check("alignment cost KFOLD (pp)", 0.40, by_shift("KFOLD", -1) - by_shift("KFOLD", 0), 0.006)
 check(
     "alignment cost TEMPORAL (pp)",
-    0.58,
+    1.01,
     by_shift("TEMPORAL", -1) - by_shift("TEMPORAL", 0),
     0.006,
 )
 check("shift -2 h KFOLD nRMSE", 12.55, by_shift("KFOLD", -2), 0.006)
-check("shift -2 h TEMPORAL nRMSE", 17.25, by_shift("TEMPORAL", -2), 0.006)
+check("shift -2 h TEMPORAL nRMSE", 17.81, by_shift("TEMPORAL", -2), 0.006)
 
 print("\nReference-forecast fallbacks")
 gaps = pd.read_csv(R / "pv_v4_baseline_gaps.csv")
@@ -291,17 +291,17 @@ def wcmp(cmp_: str, mode: str, col: str) -> float:
 REL = "relative_rmse_change_pct"
 for name, cmp_, mode, paper, tol in [
     ("matched-restriction cost KFOLD (%)", "dropped_cloud_levels", "KFOLD", 0.05, 0.005),
-    ("matched-restriction gain TEMPORAL (%)", "dropped_cloud_levels", "TEMPORAL", -0.81, 0.005),
+    ("matched-restriction cost TEMPORAL (%)", "dropped_cloud_levels", "TEMPORAL", 0.46, 0.005),
     ("forecast penalty KFOLD (%)", "operational_penalty", "KFOLD", 13.1, 0.05),
-    ("forecast penalty TEMPORAL (%)", "operational_penalty", "TEMPORAL", 5.9, 0.05),
+    ("forecast penalty TEMPORAL (%)", "operational_penalty", "TEMPORAL", 4.2, 0.05),
     ("ERA5 KFOLD (%)", "weather_product_sensitivity", "KFOLD", 4.9, 0.05),
-    ("ERA5 TEMPORAL (%)", "weather_product_sensitivity", "TEMPORAL", -6.7, 0.05),
+    ("ERA5 TEMPORAL (%)", "weather_product_sensitivity", "TEMPORAL", -7.0, 0.05),
 ]:
     check(name, paper, wcmp(cmp_, mode, REL), tol)
 
 WSKILL = "skill_vs_smart_persistence"
 check("forecast R2 KFOLD", 0.699, wsum("forecast_day1", "KFOLD", "ensemble_R2"))
-check("forecast R2 TEMPORAL", 0.484, wsum("forecast_day1", "TEMPORAL", "ensemble_R2"))
+check("forecast R2 TEMPORAL", 0.459, wsum("forecast_day1", "TEMPORAL", "ensemble_R2"))
 check("forecast skill KFOLD", 0.332, wsum("forecast_day1", "KFOLD", WSKILL))
 check("analysis-matched skill KFOLD", 0.312, wsum("analysis_matched", "KFOLD", WSKILL))
 check(
@@ -333,13 +333,13 @@ def cost(label: str, mode: str, col: str) -> float:
 
 
 base = cb[cb["label"] != "Full ensemble"].drop_duplicates("label")
-check("total fit seconds", 11.98, base["fit_seconds"].sum(), 0.05)
-check("total predict ms per day", 0.70, base["predict_ms_per_day"].sum(), 0.05)
+check("total fit seconds", 12.85, base["fit_seconds"].sum(), 0.05)
+check("total predict ms per day", 0.73, base["predict_ms_per_day"].sum(), 0.05)
 check("GBM alone fit seconds", 1.01, cost("Gradient boosting", "KFOLD", "fit_seconds"), 0.05)
 check("CNN value, random fold (%)", 5.77, cost("CNN", "KFOLD", "rmse_increase_pct"), 0.05)
 check(
     "POA-normalised GBM value, rolling (%)",
-    2.90,
+    2.53,
     cost("POA-normalised GBM", "TEMPORAL", "rmse_increase_pct"),
     0.05,
 )
@@ -361,7 +361,7 @@ for protocol in ("Random day-fold", "Rolling-origin"):
     print(f"  [{'ok  ' if cheaper else 'FAIL'}] POA-normalised GBM cheaper at r=3 ({protocol})")
     if not cheaper:
         FAILS.append(f"POA-normalised GBM not cheaper at r=3 ({protocol})")
-for label, paper in [("Ridge stacking", 0.09), ("POA-normalised GBM", 0.26)]:
+for label, paper in [("Ridge stacking", 0.13), ("POA-normalised GBM", 0.26)]:
     check(f"{label} skill_r3 (rolling)", paper, ops(label, "Rolling-origin", "skill_r3"))
 
 print("\nMask ablation")
@@ -376,7 +376,7 @@ print("\nClipping sensitivity")
 cs = pd.read_csv(R / "pv_v4_clip_sensitivity.csv")
 row = cs[(cs["kappa_clip"] == 1.5) & (cs["mode"] == "KFOLD")].iloc[0]
 check("clip 1.5 matches headline (KFOLD)", 12.42, row["ensemble_nRMSE_pct"], 0.006)
-for mode, spread in [("KFOLD", 0.03), ("TEMPORAL", 0.22)]:
+for mode, spread in [("KFOLD", 0.03), ("TEMPORAL", 0.29)]:
     view = cs[cs["mode"] == mode]["ensemble_nRMSE_pct"]
     check(f"clip spread {mode} (pp)", spread, float(np.ptp(view.to_numpy())), 0.006)
 
@@ -390,9 +390,9 @@ def ref(name: str, mode: str, col: str = "nRMSE_pct") -> float:
 
 check("smart persistence nRMSE (KFOLD)", 18.07, ref("SmartPersistence", "KFOLD"), 0.006)
 check("combination nRMSE (KFOLD)", 18.18, ref("ClimPersCombination", "KFOLD"), 0.006)
-check("smart persistence nRMSE (TEMPORAL)", 18.65, ref("SmartPersistence", "TEMPORAL"), 0.006)
-check("combination nRMSE (TEMPORAL)", 22.27, ref("ClimPersCombination", "TEMPORAL"), 0.006)
-check("climatology nRMSE (TEMPORAL)", 26.98, ref("Climatology", "TEMPORAL"), 0.006)
+check("smart persistence nRMSE (TEMPORAL)", 18.63, ref("SmartPersistence", "TEMPORAL"), 0.006)
+check("combination nRMSE (TEMPORAL)", 22.28, ref("ClimPersCombination", "TEMPORAL"), 0.006)
+check("climatology nRMSE (TEMPORAL)", 27.05, ref("Climatology", "TEMPORAL"), 0.006)
 # Skill scores use smart persistence, which should be the most accurate reference.
 for mode in ("KFOLD", "TEMPORAL"):
     block = sor[sor["mode"] == mode]

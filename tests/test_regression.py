@@ -31,8 +31,8 @@ METRICS = paths.RESULTS_DIR / "pv_v4_metrics.csv"
 EXPECTED = {
     ("KFOLD", "NNLSStack", "daylight"): {"R2": 0.765, "nRMSE_pct": 12.42},
     ("KFOLD", "NNLSStack", "ALL"): {"R2": 0.859, "nRMSE_pct": 8.41},
-    ("TEMPORAL", "NNLSStack", "daylight"): {"R2": 0.532, "nRMSE_pct": 17.59},
-    ("TEMPORAL", "NNLSStack", "ALL"): {"R2": 0.719, "nRMSE_pct": 11.37},
+    ("TEMPORAL", "NNLSStack", "daylight"): {"R2": 0.506, "nRMSE_pct": 18.09},
+    ("TEMPORAL", "NNLSStack", "ALL"): {"R2": 0.704, "nRMSE_pct": 11.68},
 }
 
 # The opt-in rerun below restores the legacy policies, which produce a

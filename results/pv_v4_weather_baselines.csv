@@ -2,6 +2,6 @@ mode,model,analysis_full,analysis_matched,era5_full,forecast_day1
 KFOLD,Climatology,18.645,18.645,18.645,18.645
 KFOLD,Persistence,22.887,22.887,22.887,22.887
 KFOLD,SmartPersistence,18.07,18.07,17.928,21.044
-TEMPORAL,Climatology,26.973,26.973,26.973,26.973
+TEMPORAL,Climatology,27.045,27.045,27.045,27.045
 TEMPORAL,Persistence,24.924,24.924,24.924,24.924
-TEMPORAL,SmartPersistence,18.649,18.649,18.309,20.409
+TEMPORAL,SmartPersistence,18.625,18.625,18.29,20.377
