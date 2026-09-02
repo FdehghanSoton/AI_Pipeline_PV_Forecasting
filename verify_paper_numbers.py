@@ -73,19 +73,37 @@ for name, row, lo, hi, days in [
     if not ok:
         FAILS.append(f"{name} bootstrap p-value")
 blocks = pd.read_csv(R / "pv_v4_bootstrap_blocks.csv")
+vs_val = (
+    blocks[blocks["comparator"] == "BestSingleByVal"]
+    if "comparator" in blocks.columns
+    else blocks
+)
 for mode, width, lo, hi in [
     ("KFOLD", 3, 3.8, 9.6),
     ("KFOLD", 7, 3.0, 10.6),
     ("TEMPORAL", 3, 1.0, 4.8),
     ("TEMPORAL", 7, 0.4, 5.1),
 ]:
-    row = blocks[(blocks["mode"] == mode) & (blocks["block_days"] == width)].iloc[0]
+    row = vs_val[(vs_val["mode"] == mode) & (vs_val["block_days"] == width)].iloc[0]
     check(f"{mode} {width}-day CI low (%)", lo, row["ci_low_pct"], 0.05)
     check(f"{mode} {width}-day CI high (%)", hi, row["ci_high_pct"], 0.05)
     ok = row["ci_low_pct"] > 0
     print(f"  [{'ok  ' if ok else 'FAIL'}] {mode} {width}-day CI excludes 0")
     if not ok:
         FAILS.append(f"{mode} {width}-day CI")
+if "comparator" in blocks.columns:
+    skill = blocks[
+        (blocks["comparator"] == "SmartPersistence")
+        & (blocks["mode"] == "TEMPORAL")
+        & (blocks["block_days"] == 1)
+    ].iloc[0]
+    check("rolling skill vs smart-pers (%)", 2.9, skill["rel_rmse_gain_pct"], 0.05)
+    check("rolling skill vs smart-pers CI low (%)", -6.3, skill["ci_low_pct"], 0.05)
+    check("rolling skill vs smart-pers CI high (%)", 11.4, skill["ci_high_pct"], 0.05)
+    includes_zero = skill["ci_low_pct"] < 0 < skill["ci_high_pct"]
+    print(f"  [{'ok  ' if includes_zero else 'FAIL'}] rolling skill vs smart-pers CI includes 0")
+    if not includes_zero:
+        FAILS.append("rolling skill vs smart-pers CI")
 SKILL = "skill_vs_SmartPersistence"
 check("random-fold skill", 0.312, metric(m, "KFOLD", "NNLSStack", "daylight", SKILL))
 check(
