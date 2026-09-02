@@ -4,11 +4,12 @@ Code and results for the UK AI Conference 2026 paper of the same name.
 
 The pipeline forecasts hourly photovoltaic (PV) output a day ahead for a
 charging-station site in Southampton, United Kingdom, using about a
-year of inverter measurements and public weather data. It applies a one-hour
-timestamp correction to an apparent offset between the two records, builds
-leakage-safe solar-geometry and clearness-index features, adds short-term
-atmospheric context, and fuses five structurally different predictors with
-weights learned on validation rows only.
+year of inverter measurements and public weather data. It evaluates an
+apparent one-hour offset between the two records and retains a one-hour
+correction as a stated timestamp convention, builds leakage-safe
+solar-geometry and clearness-index features, adds short-term atmospheric
+context, and fuses five structurally different predictors with weights
+learned on validation rows only.
 
 ```text
         PV measurements                  Open-Meteo weather
